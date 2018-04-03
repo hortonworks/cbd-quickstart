@@ -1,0 +1,644 @@
+
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  {{if $VPC}}"Description": "Deploys Hortonworks Data Cloud for AWS into an existing VPC and connects an existing RDS instance.",{{else}}
+  "Description": "Deploys Hortonworks Data Cloud for AWS into a new VPC.",{{end}}
+  "Parameters": {
+
+    {{if $VPC}}
+    "VPCID": {
+      "Description": "ID of an existing VPC which the instance will be deployed into",
+      "Type": "AWS::EC2::VPC::Id",
+      "ConstraintDescription": "must be the ID of an existing VPC.",
+      "MinLength" : "1"
+    },
+    "SubnetID": {
+      "Description": "ID of an existing Subnet within the VPC which the instance will be deployed into",
+      "Type": "AWS::EC2::Subnet::Id",
+      "ConstraintDescription": "must be the ID of an existing Subnet.",
+      "MinLength" : "1"
+    },
+    {{end}}
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength" : "1",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "RemoteLocation": {
+      {{if $GA}}"Description": "Allow connections from this address range. Must be a valid CIDR IP. Learn more at http://tinyurl.com/hdcloud-1-16-0-cidr-2.",
+      "ConstraintDescription": "must be a single IP address or an IP address range in CIDR notation (More information at http://tinyurl.com/hdcloud-1-16-0-cidr-2.",{{else}}
+      "Description": "Allow connections from this address range. Must be a valid CIDR IP. Learn more at http://hortonworks.github.io/hdp-aws/launch/#launching-the-cloud-controller.",
+      "ConstraintDescription": "must be a single IP address or an IP address range in CIDR notation (More information at http://hortonworks.github.io/hdp-aws/launch/#launching-the-cloud-controller).",{{end}}
+      "Type": "String",
+      "AllowedPattern" : "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
+    },
+    "EmailAddress" : {
+      "Description" : "Username for the Admin account. Must be a valid email address.",
+      "Type" : "String",
+      "MinLength" : "5",
+      "MaxLength" : "100",
+      "ConstraintDescription" : "must be a valid e-mail address",
+      "AllowedPattern" : "^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$"
+    },
+    "AdminPassword" : {
+      "Description" : "Password for Admin account. Must be at least 8 characters containing letters, numbers and symbols.",
+      "Type" : "String",
+      "NoEcho": "true",
+      "MinLength" : "8",
+      "MaxLength" : "50",
+      "ConstraintDescription" : "must be at least 8 characters containing letters, numbers and symbols.",
+      "AllowedPattern" : "^[^\\s\\t\\n\\r]{8,50}$"
+    },
+    "InstanceType" : {
+      "Description" : "EC2 instance type to use for the cloud controller.",
+      "Type" : "String",
+      "Default" : "m4.large",
+      "AllowedValues" : [ "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge" ]
+    },
+    {{if $RDS}}
+    "RdsUrl": {
+      "Description": "Endpoint HOST:PORT for existing PostgreSQL RDS instance that you have already created and is accessible from the VPC and Subnet specified above.",
+      "Type": "String",
+      "ConstraintDescription" :"RDS URL should match: HOST:PORT or IP:PORT",
+      "AllowedPattern": "[a-zA-Z0-9-.]{1,512}:[0-9]{2,6}"
+    },
+    "RdsUsername": {
+      "Description": "Username for an existing RDS instance.",
+      "Type": "String"
+    },
+    "RdsPassword": {
+      "Description": "Password for an existing RDS instance.",
+      "Type": "String",
+      "NoEcho": "true",
+      "ConstraintDescription" : "Shouldn't be empty",
+      "MinLength" : "1"
+    },
+    "RdsDatabase": {
+      "Description": "Name of an existing database on the RDS instance.",
+      "Type": "String",
+      "ConstraintDescription" : "Shouldn't be empty",
+      "MinLength" : "1"
+    },
+    {{end}}
+    {{if $GA}}
+    "SmartSenseId": {
+      "Description": "Enter your existing SmartSenseID (if available). You must also opt-in to SmartSense telemetry below. This ID is required to enable support for Flex Subscriptions. Learn more at http://tinyurl.com/hdcloud-1-16-0-flex-1.",
+      "Type": "String",
+      "ConstraintDescription" :"Should be empty or a valid SmartSense subscription id like 'A-00000000-C-00000000'!",
+      "AllowedPattern": "^$|([a-zA-Z]{1}-[0-9]{8}-[a-zA-Z]{1}-[0-9]{8}$)"
+    },
+    {{end}}
+    "ProductTelemetry" : {
+      {{if $GA}}"Description" : "By Opting-In, you read and agree to the SmartSense terms at http://tinyurl.com/hdcloud-1-16-0-smartsense-1.",{{else}}
+      "Description" : "By Opting-In, you read and agree to the SmartSense terms at http://hortonworks.github.io/hdp-aws/smartsense/index.html.",{{end}}
+      "Type" : "String",
+      {{if $GA}}"Default" : "I Do Not Opt In to SmartSense Telemetry",{{else}}
+      "Default" : "I Have Read and Opt In to SmartSense Telemetry",{{end}}
+      "AllowedValues" : [ "I Have Read and Opt In to SmartSense Telemetry", "I Do Not Opt In to SmartSense Telemetry" ]
+    }
+  },
+
+  "Conditions" : {
+    "AllowProductTelemetry" : {"Fn::Equals" : [{"Ref" : "ProductTelemetry"}, "I Have Read and Opt In to SmartSense Telemetry"]}
+  },
+
+  "Metadata" : {
+      "AWS::CloudFormation::Interface" : {
+        "ParameterGroups" : [
+          {
+            "Label" : { "default" : "General Configuration" },
+            "Parameters" : [ "InstanceType", "EmailAddress", "AdminPassword" ]
+          },
+          {
+            "Label" : { "default" : "Security Configuration" },
+            "Parameters" : [ "KeyName", "RemoteLocation" ]
+          },
+          {
+            "Label" : { "default" : "SmartSense Configuration" },
+            "Parameters" : [ {{if $GA}}"SmartSenseId",{{end}} "ProductTelemetry" ]
+          {{if $VPC}}
+          },
+          {
+            "Label" : { "default" : "Network Configuration" },
+            "Parameters" : [ "VPCID", "SubnetID" ]
+          {{end}}
+          {{if $RDS}}
+          },
+          {
+            "Label" : { "default" : "RDS Configuration" },
+            "Parameters" : [ "RdsUrl", "RdsUsername", "RdsPassword", "RdsDatabase" ]
+          {{end}}
+          }
+        ],
+        "ParameterLabels" : {
+          "InstanceType" : { "default" : "Controller Instance Type" },
+          "EmailAddress" : { "default" : "Email Address" },
+          "AdminPassword" : { "default" : "Admin Password" },
+          "ProductTelemetry" : { "default" : "Telemetry Opt In" },
+          {{if $GA}}"SmartSenseId" : { "default" : "SmartSenseID" },{{end}}
+          "KeyName" : { "default" : "SSH Key Name"},
+          "RemoteLocation" : { "default" : "Remote Access" }{{if $VPC}},
+          "VPCID" : { "default" : "VPC ID"},
+          "SubnetID" : { "default" : "Subnet ID"}
+          {{end}}{{if $RDS}},
+          "RdsUrl" : { "default" : "RDS Endpoint"},
+          "RdsUsername" : { "default" : "RDS Username"},
+          "RdsPassword" : { "default" : "RDS Password"},
+          "RdsDatabase" : { "default" : "Database Name"}
+          {{end}}
+        }
+      }
+  },
+
+  "Mappings": {
+      "AWSRegionAMI": {{ file "aws-mapping.yml"  | yamltojson }}
+   },
+
+   "Resources" : {
+
+   {{if not $VPC}}
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : "10.0.0.0/16",
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "MapPublicIpOnLaunch" : true,
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : "10.0.0.0/24",
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "AttachGateway" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+         "VpcId" : { "Ref" : "VPC" },
+         "InternetGatewayId" : { "Ref" : "InternetGateway" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "PublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : [ "PublicRouteTable", "AttachGateway" ],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+    {{end}}
+
+    "CloudbreakRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                     "Service": [ "ec2.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [ {
+               "PolicyName": "root",
+               "PolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Action": [ "sts:AssumeRole" ],
+                     "Resource": "*"
+                  }, {
+                     "Effect": "Allow",
+                     "Action": [ "ec2:DescribeKeyPairs",
+                                 "ec2:DescribeInternetGateways",
+                                 "ec2:DescribeVpcs",
+                                 "ec2:DescribeSubnets",
+                                 "s3:CreateBucket",
+                                 "s3:PutObject",
+                                 "s3:ListAllMyBuckets",
+                                 "cloudformation:DescribeStackResource",
+                                 "iam:ListRoles" ],
+                     "Resource": "*"
+                  }
+                  ]
+               }
+               } ]
+            }
+      },
+      "RootInstanceProfile": {
+         "Type": "AWS::IAM::InstanceProfile",
+         "Properties": {
+            "Path": "/",
+            "Roles": [ {
+               "Ref": "CloudbreakRole"
+            } ]
+         }
+      },
+
+      "CredentialRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+             "Version" : "2012-10-17",
+             "Statement": [ {
+                "Effect": "Allow",
+                "Principal": {
+                   "AWS": { "Fn::Join" : ["", [ "arn:aws:iam::", { "Ref" : "AWS::AccountId" }, ":root" ]] }
+                },
+                "Action": [ "sts:AssumeRole" ],
+                "Condition": {
+                  "StringEquals": {
+                    "sts:ExternalId": "provision-ambari"
+                  }
+                }
+             } ]
+          },
+          "Path": "/",
+          "Policies": [ {
+            "PolicyName": "root",
+            "PolicyDocument": {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+               "Effect": "Allow",
+               "Action": [ "ec2:DeleteRoute",
+                           "ec2:DeleteRouteTable",
+                           "ec2:DeleteSecurityGroup",
+                           "ec2:StartInstances",
+                           "ec2:StopInstances",
+                           "ec2:TerminateInstances" ],
+                "Resource": "*"
+            }, {
+               "Effect": "Allow",
+               "Action": [ "autoscaling:CreateAutoScalingGroup",
+                           "autoscaling:CreateLaunchConfiguration",
+                           "autoscaling:DeleteAutoScalingGroup",
+                           "autoscaling:DeleteLaunchConfiguration",
+                           "autoscaling:DescribeAutoScalingGroups",
+                           "autoscaling:DescribeLaunchConfigurations",
+                           "autoscaling:DescribeScalingActivities",
+                           "autoscaling:DetachInstances",
+                           "autoscaling:ResumeProcesses",
+                           "autoscaling:SuspendProcesses",
+                           "autoscaling:UpdateAutoScalingGroup",
+                           "cloudformation:CreateStack",
+                           "cloudformation:DeleteStack",
+                           "cloudformation:DescribeStackEvents",
+                           "cloudformation:DescribeStackResource",
+                           "cloudformation:DescribeStacks",
+                           "iam:ListRolePolicies",
+                           "iam:GetRolePolicy",
+                           "iam:CreateInstanceProfile",
+                           "iam:AddRoleToInstanceProfile",
+                           "iam:ListAttachedRolePolicies",
+                           "iam:PutRolePolicy",
+                           "iam:PassRole",
+                           "iam:CreateRole",
+                           "iam:GetRole",
+                           "iam:DeleteRolePolicy",
+                           "iam:DeleteRole",
+                           "iam:RemoveRoleFromInstanceProfile",
+                           "iam:DeleteInstanceProfile",
+                           "ec2:AllocateAddress",
+                           "ec2:AssociateAddress",
+                           "ec2:AssociateRouteTable",
+                           "ec2:AuthorizeSecurityGroupIngress",
+                           "ec2:CreateRoute",
+                           "ec2:CreateRouteTable",
+                           "ec2:CreateSecurityGroup",
+                           "ec2:CreateSubnet",
+                           "ec2:CreateTags",
+                           "ec2:DeleteSubnet",
+                           "ec2:DisassociateAddress",
+                           "ec2:DisassociateRouteTable",
+                           "ec2:ModifySubnetAttribute",
+                           "ec2:ReleaseAddress",
+                           "ec2:DescribeAddresses",
+                           "ec2:DescribeImages",
+                           "ec2:DescribeInstanceStatus",
+                           "ec2:DescribeInstances",
+                           "ec2:DescribeInternetGateways",
+                           "ec2:DescribeKeyPairs",
+                           "ec2:DescribeRouteTables",
+                           "ec2:DescribeSecurityGroups",
+                           "ec2:DescribeSpotInstanceRequests",
+                           "ec2:DescribeSubnets",
+                           "ec2:DescribeVpcs",
+                           "ec2:DescribeVpcAttribute",
+                           "s3:ListAllMyBuckets" ],
+               "Resource": "*"
+            } ]
+            }
+        } ]
+      }
+    },
+
+    "Cloudbreak": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn" : [ {{if not $VPC}}"PublicSubnetRouteTableAssociation", "PublicRoute",{{end}} "CredentialRole" {{if $VPC}}, "PrecheckDeployment"{{end}}],
+      "Metadata" : {
+        "cloudbreak" : {
+          "user" : { "Ref" : "EmailAddress" },
+          "password" : { "Ref" : "AdminPassword" },
+          "secret" : {
+            {{if $RDS}}
+              "default" : "cbsecret2015"
+            {{else}}
+              "default" : { "Fn::Base64" : { "Ref" : "AWS::StackId" } }
+            {{end}}
+          }
+          {{if $RDS}},
+            "rds" : {
+              "user" : { "Ref" : "RdsUsername" },
+              "password" : { "Ref" : "RdsPassword" }
+            }
+          {{end}}
+        },
+        "profile" : { "Fn::Join" : ["", [
+          "export STACK_NAME=", { "Ref" : "AWS::StackName" }, "\n",
+          "export CREDENTIAL_ROLE_ARN='", { "Fn::GetAtt" : [ "CredentialRole" , "Arn" ] }, "'\n",
+          "export KEYPAIR_NAME=", { "Ref" : "KeyName" }, "\n",
+          "export PRODUCT_TELEMETRY='", { "Ref" : "ProductTelemetry" }, "'\n",
+          "export WAIT_HANDLE_URL='", { "Ref" : "InstanceWaitHandle" }, "'\n",
+          "export UPLOAD_LOGS=NO\n",
+          "export VPC_ID='", { "Ref" : "VPC{{if $VPC}}ID{{end}}" } ,"'\n",
+          "export CB_SMARTSENSE_ID=",{{if $GA}} { "Ref" : "SmartSenseId" }{{else}}"''"{{end}}, "\n",
+          "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
+          {{if $VPC}}
+          "export SUBNET_ID='", { "Ref" : "SubnetID" } ,"'\n",
+          {{else}}
+          "export IGW_ID='", { "Ref" : "InternetGateway" } ,"'\n",
+          {{end}}
+          "export CBD_VERSION={{ $CBD_VERSION }}\n",
+          "export BUILD_CLUSTER=false\n",
+          "export EXISTING_VPC={{if $VPC}}true{{end}}\n",
+          {{if $GA}}
+          "export GA=true\n",
+          {{else}}
+          "export GA=false\n",
+          {{end}}
+          "export RDS_URL="{{if $RDS}}, { "Ref" : "RdsUrl" }{{end}}, "\n",
+          "\n",
+          ""
+        ]]},
+        "cbdprofile" : { "Fn::Join" : ["", [
+          "get-meta() { aws --region ", { "Ref" : "AWS::Region" }, " cloudformation describe-stack-resource --stack-name ", { "Ref" : "AWS::StackName" }, " --logical-resource-id Cloudbreak | jq -r .StackResourceDetail.Metadata | jq -r $1; }", "\n",
+          "# START-CF-TEMPLATE\n",
+          "export UAA_DEFAULT_SECRET=$(get-meta '.cloudbreak.secret.default')", "\n",
+        {{if $RDS}}
+          "export RDS_URL=", { "Ref" : "RdsUrl" }, "\n",
+          "export CB_DB_PORT_5432_TCP_ADDR=${RDS_URL%%:*}\n",
+          "export CB_DB_PORT_5432_TCP_PORT=${RDS_URL##*:}\n",
+          "export CB_DB_ENV_USER=$(get-meta '.cloudbreak.rds.user')", "\n",
+          "export CB_DB_ENV_PASS=$(get-meta '.cloudbreak.rds.password')", "\n",
+          "export CB_DB_ENV_DB=", { "Ref" : "RdsDatabase" }, "\n",
+          "\n",
+          "export PERISCOPE_DB_TCP_ADDR=${RDS_URL%%:*}\n",
+          "export PERISCOPE_DB_TCP_PORT=${RDS_URL##*:}\n",
+          "export PERISCOPE_DB_USER=$(get-meta '.cloudbreak.rds.user')", "\n",
+          "export PERISCOPE_DB_PASS=$(get-meta '.cloudbreak.rds.password')", "\n",
+          "export PERISCOPE_DB_NAME=", { "Ref" : "RdsDatabase" }, "\n",
+          "export PERISCOPE_DB_SCHEMA_NAME=autoscale\n",
+          "\n",
+          "export IDENTITY_DB_URL=", { "Ref" : "RdsUrl" }, "\n",
+          "export IDENTITY_DB_USER=$(get-meta '.cloudbreak.rds.user')", "\n",
+          "export IDENTITY_DB_PASS=$(get-meta '.cloudbreak.rds.password')", "\n",
+          "export IDENTITY_DB_NAME=", { "Ref" : "RdsDatabase" }, "\n",
+        {{end}}
+        {{if $SSTP}}
+        "export CB_BLUEPRINT_DEFAULTS='Data Science: Apache Spark 1.6, Apache Zeppelin 0.6.0=hdp25-data-science;EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp25-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.0=hdp25-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.6.0=hdp25-edw-analytics;Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0=hdp26-data-science;26EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp26-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.1=hdp26-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0=hdp26-edw-analytics;BI: Druid 0.9.2 (Technical Preview)=hdp26-druid-bi;Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0=hdp26-data-science-spark2;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.1 Shared=hdp26-etl-edw-shared;Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0 Shared=hdp26-data-science-spark2-shared;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0 Shared=hdp26-edw-analytics-shared;Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0 Shared=hdp26-data-science-shared;BI: Druid 0.9.2 (Technical Preview) Shared=hdp26-druid-bi-shared;Enterprise Services: Apache Atlas, Apache Ranger=hdp26-shared-services'", "\n",
+        "export HWX_CLOUD_ENABLE_GOVERNANCE_AND_SECURITY=true", "\n",
+        {{else if $GA}}
+        "export CB_BLUEPRINT_DEFAULTS='Data Science: Apache Spark 1.6, Apache Zeppelin 0.6.0=hdp25-data-science;EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp25-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.0=hdp25-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.6.0=hdp25-edw-analytics;Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0=hdp26-data-science;26EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp26-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.1=hdp26-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0=hdp26-edw-analytics;BI: Druid 0.9.2 (Technical Preview)=hdp26-druid-bi;Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0=hdp26-data-science-spark2'", "\n",
+        {{else}}
+        "export CB_BLUEPRINT_DEFAULTS='Data Science: Apache Spark 1.6, Apache Zeppelin 0.6.0=hdp25-data-science;EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp25-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.0=hdp25-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.6.0=hdp25-edw-analytics;Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0=hdp26-data-science;26EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6=hdp26-etl-edw;EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.1=hdp26-etl-edw-spark2;EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0=hdp26-edw-analytics;BI: Druid 0.9.2 (Technical Preview)=hdp26-druid-bi;Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0=hdp26-data-science-spark2'", "\n",
+        {{end}}
+          "export COMPOSE_HTTP_TIMEOUT=240", "\n",
+          "export UAA_DEFAULT_USER_EMAIL='", { "Ref" : "EmailAddress" }, "'", "\n",
+          "export UAA_DEFAULT_USER_PW=''\n",
+          "export CB_AWS_DEFAULT_CF_TAG='", { "Ref" : "AWS::StackId" } ,"'", "\n",
+          "export ULU_HWX_CLOUD_DEFAULT_CREDENTIAL=aws-access", "\n",
+          "export ULU_HWX_CLOUD_DEFAULT_REGION=", { "Ref" : "AWS::Region" }, "\n",
+          "export CB_PLATFORM_DEFAULT_REGIONS=AWS:", { "Ref" : "AWS::Region" }, "\n",
+          "export ULU_HWX_CLOUD_DEFAULT_VPC_ID='", { "Ref" : "VPC{{if $VPC}}ID{{end}}" } ,"'", "\n",
+          "export ULU_HWX_CLOUD_DEFAULT_SSH_KEY=", { "Ref" : "KeyName" }, "\n",
+          "export DOCKER_IMAGE_CLOUDBREAK_WEB=hortonworks/hdc-web", "\n",
+          "export DOCKER_IMAGE_CLOUDBREAK_AUTH=hortonworks/hdc-auth", "\n",
+          "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
+          "export CLOUDBREAK_TELEMETRY_MAIL_ADDRESS=aws-marketplace@hortonworks.com", "\n",
+          "export HWX_CLOUD_TYPE=advanced", "\n",
+          "export HWX_CLOUD_TEMPLATE_VERSION={{ $CBD_VERSION }}", "\n",
+          "export AWS_AMI_ID=$(curl -4fs 169.254.169.254/latest/meta-data/ami-id)", "\n",
+          "export AWS_INSTANCE_ID=$(curl -4fs 169.254.169.254/latest/meta-data/instance-id)", "\n",
+          "export CB_TRAEFIK_HOST_ADDRESS=$(curl -m 1 -f -s 169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)", "\n",
+          "export CB_SMARTSENSE_CONFIGURE=", { "Fn::If" : ["AllowProductTelemetry", "true", "false"]}, "\n",
+          {{if eq $CBD_VERSION "snapshot"}}
+          "export CB_JAVA_OPTS='-Dinfo.app.version=unspecified'", "\n",
+          {{end}}
+
+          {{if $GA}}
+          "export HWX_DISPLAY_TERMS_AND_CONDITIONS=false", "\n",
+          "export HWX_HCC_AVAILABLE=true", "\n",
+          {{else}}
+          "export HWX_DISPLAY_TERMS_AND_CONDITIONS=true", "\n",
+          "export HWX_HCC_AVAILABLE=false", "\n",
+          {{end}}
+
+          {{if $STAGING}}
+          "export ULU_HWX_CLOUD_REGISTRATION_URL=https://hcc-user-registration.sequenceiq.com", "\n",
+          {{else}}
+          "export CB_IMAGE_CATALOG_URL=https://s3-eu-west-1.amazonaws.com/cloudbreak-info/marketplace-cb-image-catalog.json", "\n",
+          "export ULU_HWX_CLOUD_REGISTRATION_URL=https://service.hdcloud.hortonworks.com", "\n",
+          {{end}}
+
+          {{if $VPC}}
+          "export ULU_HWX_CLOUD_DEFAULT_SUBNET_ID='", { "Ref" : "SubnetID" } ,"'", "\n",
+          {{else}}
+          "export ULU_HWX_CLOUD_DEFAULT_IGW_ID='", { "Ref" : "InternetGateway" } ,"'", "\n",
+          {{end}}
+
+          "export ULU_SUBSCRIBE_TO_NOTIFICATIONS=false", "\n",
+          "export CB_DEFAULT_SUBSCRIPTION_ADDRESS=http://uluwatu.service.consul:3000/notifications", "\n",
+          "export CB_AWS_DEFAULT_INBOUND_SECURITY_GROUP=", { "Ref" : "CloudbreakSecurityGroup" }, "\n",
+          "export CB_AWS_VPC='", { "Ref" : "VPC{{if $VPC}}ID{{end}}" } ,"'", "\n",
+          "# END-CF-TEMPLATE\n"
+
+        ]]}
+      },
+      "Properties": {
+        "IamInstanceProfile": { "Ref" : "RootInstanceProfile" },
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionAMI", { "Ref" : "AWS::Region" }, "ami" ] },
+        {{if $VPC}}
+        "NetworkInterfaces" : [ { "AssociatePublicIpAddress" : true, "DeviceIndex" : "0", "SubnetId" : { "Ref" : "SubnetID" }, "GroupSet" : [{ "Ref" : "CloudbreakSecurityGroup" }] } ],
+        {{else}}
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "SecurityGroupIds" : [ { "Ref" : "CloudbreakSecurityGroup" } ],
+        {{end}}
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "KeyName"        : { "Ref" : "KeyName" },
+        "Tags" : [
+          { "Key" : "Name", "Value" : { "Fn::Join" : ["", [ { "Ref" : "AWS::StackName" }, "-cbd" ]] } }
+        ],
+        "UserData"       : "{{ base64enc "start-cbd.sh" }}"
+      }
+    },
+
+    "InstanceWaitHandle" : {
+      {{if $VPC}}"DependsOn": "PrecheckDeployment",{{end}}
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "InstanceWaitCondition" : {
+       "Type" : "AWS::CloudFormation::WaitCondition",
+       "DependsOn" : "Cloudbreak",
+       "Properties" : {
+          "Handle"  : { "Ref" : "InstanceWaitHandle" },
+          "Timeout" : 36000
+       }
+    },
+
+    "PrecheckDeployment": {
+      "Type": "Custom::PrecheckDeployment",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": ["ValidateParameters", "Arn"]
+        },
+        {{if $VPC}}
+        "SUBNET": {
+          "Ref": "SubnetID"
+        },
+        "VPC": {
+          "Ref": "VPCID"
+        },
+        {{end}}
+        {{if $GA}}
+        "SSID": {
+          "Ref": "SmartSenseId"
+        },
+        {{end}}
+        "SSEnabled": {
+          "Ref": "ProductTelemetry"
+        }
+      }
+    },
+
+    "ValidateParameters": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
+        },
+        "Code": {
+          "ZipFile": "{{$VALIDATOR}}"
+        },
+        "Runtime": "nodejs4.3",
+        "Timeout": "60"
+      }
+    },
+
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": ["lambda.amazonaws.com"]
+            },
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*"
+              }{{if $VPC}}, {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeVpcAttribute"
+                ],
+                "Resource": "*"
+              }{{end}}
+            ]
+          }
+        }]
+      }
+    },
+    "CloudbreakSecurityGroup" : {
+      {{if $VPC}}"DependsOn": "PrecheckDeployment",{{end}}
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC{{if $VPC}}ID{{end}}" },
+        "GroupDescription" : "Enable HTTP access to Cloud UI and SSH access from a remote location",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : { "Ref" : "RemoteLocation" } },
+          {"IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "RemoteLocation" } },
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "RemoteLocation" } }
+        ]
+      }
+    }
+   },
+
+  "Outputs" : {
+    "CloudController" : {
+      "Value" : { "Fn::GetAtt" : [ "InstanceWaitCondition", "Data" ]},
+      "Description" : "URL to the Cloud UI. Login using the Admin account information you provided during Create Stack."
+    },
+    "SshAccess" : {
+      "Value" : { "Fn::Join" : ["", ["ssh -i ", { "Ref" : "KeyName" }, ".pem cloudbreak@", { "Fn::GetAtt" : [ "Cloudbreak", "PublicIp" ]} ]] },
+      "Description" : "Access the instance via ssh"
+    }
+  }
+}

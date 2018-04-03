@@ -1,0 +1,69 @@
+resources:
+- type: compute.v1.network
+  name: {{ env["deployment"] }}-network
+  properties:
+    autoCreateSubnetworks: false
+    region: {{ properties["region"] }}
+
+- type: compute.v1.subnetwork
+  name: {{ env["deployment"] }}-subnet
+  properties:
+    ipCidrRange: "10.0.0.0/16"
+    gatewayAddress: "10.0.0.1"
+    region: {{ properties["region"] }}
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    tags:
+      - cbd
+      - cloudbreak-deployer
+
+- type: compute.v1.route
+  name: {{ env["deployment"] }}-default-route-1
+  properties:
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    priority: 100
+    destRange: 0.0.0.0/0
+    nextHopGateway: projects/{{ env['project'] }}/global/gateways/default-internet-gateway
+    tags:
+      - cbd
+      - cloudbreak-deployer
+
+- type: compute.v1.route
+  name: {{ env["deployment"] }}-default-route-2
+  properties:
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    priority: 100
+    destRange: 10.0.0.0/16
+    nextHopGateway: projects/{{ env['project'] }}/global/gateways/default-internet-gateway
+    tags:
+      - cbd
+      - cloudbreak-deployer
+
+- type: compute.v1.firewall
+  name: firewall-{{ env["deployment"] }}
+  properties:
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    sourceRanges: [ "0.0.0.0/0" ]
+    allowed:
+    - IPProtocol: tcp
+      ports: [ "22", "443" ]
+- name: vm-{{ env["deployment"] }}
+  type: compute.v1.instance
+  properties:
+    zone: {{ properties["zone"] }}
+    machineType: https://www.googleapis.com/compute/v1/projects/{{ env['project'] }}/zones/{{ properties["zone"] }}/machineTypes/{{ properties["instance_type"] }}
+    tags:
+      items:
+      - cbd
+      - cloudbreak-deployer
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/centos-cloud/global/images/{{ properties["source_image"] }}
+    networkInterfaces:
+    - subnetwork:  $(ref.{{ env["deployment"] }}-subnet.selfLink)
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT

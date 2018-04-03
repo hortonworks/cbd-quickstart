@@ -1,0 +1,66 @@
+[
+     {
+       "ClusterType": "Data Science: Apache Spark 1.6, Apache Zeppelin 0.6.0",
+       "HDPVersion": "2.5"
+     },
+     {
+       "ClusterType": "EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6",
+       "HDPVersion": "2.5"
+     },
+     {
+       "ClusterType": "EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.0",
+       "HDPVersion": "2.5"
+     },
+     {
+       "ClusterType": "EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.6.0",
+       "HDPVersion": "2.5"
+     },
+     {
+       "ClusterType": "Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "EDW-ETL: Apache Hive 1.2.1, Apache Spark 2.1",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "BI: Druid 0.9.2 (Technical Preview)",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "EDW-ETL: Apache Hive 1.2.1, Apache Spark 1.6 Shared",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0 Shared",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "EDW-Analytics: Apache Hive 2 LLAP, Apache Zeppelin 0.7.0 Shared",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "Data Science: Apache Spark 1.6, Apache Zeppelin 0.7.0 Shared",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "BI: Druid 0.9.2 (Technical Preview) Shared",
+       "HDPVersion": "2.6"
+     },
+     {
+       "ClusterType": "Enterprise Services: Apache Atlas, Apache Ranger",
+       "HDPVersion": "2.6"
+     }
+   ]

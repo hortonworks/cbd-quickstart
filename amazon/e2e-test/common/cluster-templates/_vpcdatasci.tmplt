@@ -1,0 +1,52 @@
+  {
+    "ClusterName": "datasci26-21",
+    "HDPVersion": "2.6",
+    "ClusterType": "Data Science: Apache Spark 2.1, Apache Zeppelin 0.7.0",
+    "Master": {
+        "InstanceType": "m4.4xlarge",
+        "VolumeType": "gp2",
+        "VolumeSize": 32,
+        "VolumeCount": 1,
+        "Recipes": [
+        ]
+    },
+    "Worker": {
+        "InstanceType": "m4.xlarge",
+        "VolumeType": "gp2",
+        "VolumeSize": 32,
+        "VolumeCount": 1,
+        "Encrypted": false,
+        "InstanceCount": 3,
+        "RecoveryMode": "AUTO",
+        "Recipes": [
+        ]
+    },
+    "Compute": {
+        "InstanceType": "m4.xlarge",
+        "VolumeType": "gp2",
+        "VolumeSize": 32,
+        "VolumeCount": 1,
+        "Encrypted": false,
+        "InstanceCount": 1,
+        "RecoveryMode": "MANUAL",
+        "SpotPrice": "0.8",
+        "Recipes": [
+        ]
+    },
+    "SSHKeyName": "seq-master",
+    "RemoteAccess": "0.0.0.0/0",
+    "WebAccess": true,
+    "HiveJDBCAccess": true,
+    "ClusterComponentAccess": true,
+    "ClusterAndAmbariUser": "admin",
+    "ClusterAndAmbariPassword": "Admin123",
+    "Tags": {
+        "kisnyul": "pityuka",
+	    "+-=. _:/@": "+-=. _:/@"
+    },
+    "InstanceRole": "CREATE",
+    "Network": {
+        "VpcId": {{$CLUSTER_VPCID}},
+        "SubnetId": {{$CLUSTER_SUBNETID}}
+    }
+  }

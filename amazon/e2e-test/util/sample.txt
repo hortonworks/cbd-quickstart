@@ -1,0 +1,3 @@
+NAME	egyes	kettes
+VAL1	huhh	hehh
+VAL2	ijj	jooo

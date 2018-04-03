@@ -1,0 +1,10 @@
+export EMAIL=afarsang@hortonworks.com
+export PASSWORD=nemAdmin!
+export SSH_KEY_NAME=seq-master
+export SSH_PRIV_KEY=~/.ssh/seqmaster.pem
+export REGION=eu-west-1
+export RELEASE_TYPE=TP
+export STACK_TYPE=advanced
+#export STACK_TYPE=basic
+export TEMPLATE_VERSION=2.0.0
+export TEMPLATE_URL=https://s3.amazonaws.com/hdc-cfn/hdcloud-advanced-shared-services-TP-2.0.0.template
