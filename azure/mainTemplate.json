@@ -1,0 +1,384 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseUrl": {
+    "type": "string",
+    "metadata": {
+         "description": "The base URL for dependent assets",
+         "artifactsBaseUrl": ""
+     },
+    "defaultValue": "https://raw.githubusercontent.com/hortonworks/azure-cbd-quickstart/master/"
+    },
+    "location": {
+    "type": "string",
+    "metadata": {
+         "description": "Location of the resource group"
+     },
+    "defaultValue": "[resourceGroup().location]"
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS2",
+      "allowedValues": [
+        "Standard_DS2",
+        "Standard_DS3",
+        "Standard_DS4",
+        "Standard_DS11",
+        "Standard_DS12",
+        "Standard_DS13",
+        "Standard_DS14",
+        "Standard_DS2_v2",
+        "Standard_DS3_v2",
+        "Standard_DS4_v2",
+        "Standard_DS11_v2",
+        "Standard_DS12_v2",
+        "Standard_DS13_v2",
+        "Standard_DS14_v2"
+
+      ],
+      "metadata": {
+        "description": "Size of vm"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "admin@example.com",
+      "minLength": 6,
+      "metadata": {
+        "description": "Username for the Admin account. Must be a valid email address."
+      }
+    },
+    "adminUserPassword": {
+      "type": "securestring",
+      "minLength": 6,
+      "metadata": {
+        "description": "Password for Admin account. Must be at least 8 characters containing letters, numbers and symbols."
+      }
+    },
+    "username": {
+      "type": "string",
+      "defaultValue": "cloudbreak",
+      "metadata": {
+        "description": "Username for the Virtual Machine."
+      }
+    },
+    "smartsense": {
+      "type": "string",
+      "defaultValue": "false",
+      "allowedValues": [
+          "true",
+          "false"
+      ],
+      "metadata": {
+        "description": "By Opting-In, you read and agree to the SmartSense terms."
+      }
+    },
+    "remoteLocation": {
+      "type": "string",
+      "defaultValue": "INTERNET",
+      "metadata": {
+        "description": "Allow connections from this address range. Must be a valid CIDR IP."
+      }
+    },
+    "sshKey": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH key for cloudbreak."
+      }
+    },
+    "vnetNewOrExisting": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": [
+          "new",
+          "existing"
+      ]
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "cbdeployerVnet",
+      "metadata": {
+        "description": "Name of Virtual Network of Cloud Controller."
+      }
+    },
+    "vnetSubnetName": {
+      "type": "string",
+      "defaultValue": "cbdeployerSubnet",
+      "metadata": {
+        "description": "Name of subnet."
+      }
+    },
+    "vnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/16",
+      "metadata": {
+        "description": "CIDR for the Virtual Network."
+      }
+    },
+    "vnetSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/24",
+      "metadata": {
+        "description": "CIDR for the Subnet."
+      }
+    },
+    "vnetRGName": {
+      "type": "string",
+      "defaultValue": "",
+      "minLength": 1,
+      "metadata": {
+        "description": "Name of the resource group of the VNet, must be the name of the resource group of the deployment if new VNet is selected!"
+      }
+    }
+  },
+  "variables": {
+    "version":{
+      "templateAPIVersion":"2015-11-01",
+      "computeAPIVersion":"2017-03-30",
+      "networkAPIVersion":"2017-06-01",
+      "storageAPIVersion":"2017-06-01",
+      "typeHandlerVersion":"2.0",
+      "contentVersion":"1.0.0.0"
+    },
+    "newStorageAccountName": "[concat('cbdstorage', uniqueString(resourceGroup().id))]",
+    "fileUris": "[concat(parameters('baseUrl'),'/install-cbd.sh')]",
+    "commandToExecute": "./install-cbd.sh",
+    "scenarioPrefix": "cbdeployer",
+    "imagePublisher": "OpenLogic",
+    "imageOffer": "CentOS",
+    "imageSku": "7-CI",
+    "osDiskName": "[concat(variables('scenarioPrefix'),'OSDisk')]",
+    "osDiskCreateOption": "FromImage",
+    "nicName": "[concat(variables('scenarioPrefix'),'Nic')]",
+    "sshKeyPath": "[concat('/home/',parameters('username'),'/.ssh/authorized_keys')]",
+    "securityGroupName": "[concat(variables('scenarioPrefix'),'Nsg')]",
+    "storageAccountType": "Standard_LRS",
+    "publicIPAddressName": "[concat(variables('scenarioPrefix'),'PublicIp')]",
+    "publicIPAddressType": "Static",
+    "vmStorageAccountContainerName": "vhds",
+    "vmName": "[concat(variables('scenarioPrefix'),'VM')]",
+    "virtualNetworkName": "[concat(variables('scenarioPrefix'),'Vnet')]",
+    "singleQuote": "'"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('newStorageAccountName')]",
+      "apiVersion": "[variables('version').storageAPIVersion]",
+      "location": "[parameters('location')]",
+      "kind": "Storage",
+      "sku": {
+        "name": "[variables('storageAccountType')]"
+      }
+    },
+    {
+      "apiVersion": "[variables('version').networkAPIVersion]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[concat('cloudbreak-controller-', uniqueString(resourceGroup().id))]"
+        }
+      }
+    },
+    {
+        "name": "[variables('virtualNetworkName')]",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "[variables('version').templateAPIVersion]",
+        "properties": {
+            "mode": "Incremental",
+            "templateLink": {
+              "uri": "[concat(parameters('baseUrl'), '/vnet_', parameters('vnetNewOrExisting'), '.json')]",
+              "contentVersion": "[variables('version').contentVersion]"
+            },
+            "parameters": {
+                "vnetName": {
+                    "value": "[parameters('vnetName')]"
+                },
+                "vnetAddressPrefix": {
+                    "value": "[parameters('vnetAddressPrefix')]"
+                },
+                "vnetSubnetName": {
+                    "value": "[parameters('vnetSubnetName')]"
+                },
+                "vnetSubnetAddressPrefix": {
+                    "value": "[parameters('vnetSubnetAddressPrefix')]"
+                },
+                "location": {
+                    "value": "[parameters('location')]"
+                }
+            }
+        }
+    },
+    {
+      "apiVersion": "[variables('version').networkAPIVersion]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('securityGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh_rule",
+            "properties": {
+                "description": "Allow SSH",
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "22",
+                "sourceAddressPrefix": "[parameters('remoteLocation')]",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 100,
+                "direction": "Inbound"
+            }
+          },
+          {
+            "name": "http_rule",
+            "properties": {
+                "description": "Allow HTTP",
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "80",
+                "sourceAddressPrefix": "[parameters('remoteLocation')]",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 101,
+                "direction": "Inbound"
+            }
+          },
+          {
+            "name": "https_rule",
+            "properties": {
+                "description": "Allow HTTPS",
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "443",
+                "sourceAddressPrefix": "[parameters('remoteLocation')]",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 102,
+                "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('version').networkAPIVersion]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('nicName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
+        "[concat('Microsoft.Network/networkSecurityGroups/', variables('securityGroupName'))]",
+        "[concat('Microsoft.Resources/deployments/', variables('virtualNetworkName'))]"
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[concat(resourceId('Microsoft.Network/networkSecurityGroups', variables('securityGroupName')))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+              },
+              "subnet": {
+                "id": "[concat(resourceId(parameters('vnetRGName'), 'Microsoft.Network/virtualNetworks', concat(parameters('vnetName'))), '/subnets/', parameters('vnetSubnetName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('version').computeAPIVersion]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('vmName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('username')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[variables('sshKeyPath')]",
+                  "keyData": "[parameters('sshKey')]"
+                }
+              ]
+            }
+          },
+          "customData": "[base64(concat('#!/bin/bash\n','\necho \"export PUBLIC_IP=',reference(variables('publicIPAddressName')).dnsSettings.fqdn,'\" >> /tmp/.cbdprofile','\necho \"export CB_TRAEFIK_HOST_ADDRESS=',reference(variables('publicIPAddressName')).ipAddress,'\" >> /tmp/.cbdprofile','\necho \"export CBD_VERSION=snapshot\" >> /tmp/.cbdprofile','\necho \"export AZURE_SUBSCRIPTION_ID=',subscription().subscriptionId,'\" >> /tmp/.cbdprofile','\necho \"export AZURE_TENANT_ID=',subscription().tenantId,'\" >> /tmp/.cbdprofile','\necho \"export UAA_DEFAULT_USER_EMAIL=',parameters('adminUsername'),'\" >> /tmp/.cbdprofile','\necho $',variables('singleQuote'), 'export UAA_DEFAULT_USER_PW=$\\',variables('singleQuote'),parameters('adminUserPassword'),'\\', variables('singleQuote'),variables('singleQuote'), '>> /tmp/.cbdprofile','\necho \"export CB_SMARTSENSE_CONFIGURE=',parameters('smartsense'),'\" >> /tmp/.cbdprofile','\necho \"export OS_USER=',parameters('username'),'\" >> /tmp/.cbdprofile', '\necho \"export ULU_DEFAULT_SSH_KEY=',variables('singleQuote'),parameters('sshKey'),variables('singleQuote'),'\" >> /tmp/.cbdprofile', '\necho \"export SUBNET_CIDR=',parameters('vnetSubnetAddressPrefix'),'\" >> /tmp/.cbdprofile', '\necho \"export UAA_DEFAULT_SECRET=',base64(resourceGroup().id),'\" >> /tmp/.cbdprofile'))]"
+        },
+        "storageProfile": {
+          
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSku')]",
+            "version": "latest"
+          },
+          
+          "osDisk": {
+            "name": "osdisk1",
+          
+          
+            "vhd": {
+              "uri": "[concat(reference(variables('newStorageAccountName')).primaryEndpoints.blob, variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+            },
+          
+            "caching": "ReadWrite",
+            "createOption": "[variables('osDiskCreateOption')]"
+          }
+          
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('vmName'),'/installcustomscript')]",
+      "apiVersion": "[variables('version').computeAPIVersion]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": "[split(variables('fileUris'), ' ')]",
+          "commandToExecute": "[variables('commandToExecute')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+     "loginUrl": {
+       "type": "string",
+       "value": "[reference(variables('publicIPAddressName')).dnsSettings.fqdn]"
+     }
+   }
+}
