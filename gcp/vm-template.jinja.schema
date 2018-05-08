@@ -1,0 +1,55 @@
+info:
+  title: VM Template of a single tenant based Cloudbreak deployment
+  author: Hortonworks Inc.
+  description: Creates a Cloudbreak deployment on a VM.
+
+required:
+- region
+- zone
+- instance_type
+- startup-script
+- ssh_pub_key
+- os_user
+- user_email
+- user_password
+
+properties:
+  region:
+    description: Region to create the resources in.
+    type: string
+    default: us-central1-a
+
+  zone:
+    description: Zone to create the resources in.
+    type: string
+    default: us-central1-a
+
+  instance_type:
+    description: Type of the created VM.
+    type: string
+
+  startup-script:
+    description: The startup script to run on VM intialization.
+    type: string
+
+  cbd_version:
+    type: string
+    description: The version of the deployed Cloudbreak deployment
+
+  ssh_pub_key:
+    type: string
+    description: SSH public key of the user on the created virtual machine.
+
+  os_user:
+    type: string
+    description: Username for the user on the created virtual machine.
+    default: cloudbreak
+
+  user_email:
+    type: string
+    description: Admin email address of the created Cloudbreak deployment.
+    default: admin@example.com
+
+  user_password:
+    type: string
+    description: Admin password of the created Cloudbreak deployment.

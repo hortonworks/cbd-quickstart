@@ -1,0 +1,32 @@
+# this file is generted by: make get-latest-ami-mapping
+---
+  ap-south-1:
+    ami: "ami-76d6f519"
+  eu-west-3:
+    ami: "ami-969c2deb"
+  eu-west-2:
+    ami: "ami-a36f8dc4"
+  eu-west-1:
+    ami: "ami-ca0135b3"
+  ap-northeast-2:
+    ami: "ami-c10fa6af"
+  ap-northeast-1:
+    ami: "ami-92df37ed"
+  sa-east-1:
+    ami: "ami-3885d854"
+  ca-central-1:
+    ami: "ami-338a0a57"
+  ap-southeast-1:
+    ami: "ami-de90a5a2"
+  ap-southeast-2:
+    ami: "ami-423bec20"
+  eu-central-1:
+    ami: "ami-9a91b371"
+  us-east-1:
+    ami: "ami-14c5486b"
+  us-east-2:
+    ami: "ami-922914f7"
+  us-west-1:
+    ami: "ami-25110f45"
+  us-west-2:
+    ami: "ami-e251209a"

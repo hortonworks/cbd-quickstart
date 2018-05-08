@@ -10,7 +10,7 @@ init() {
     setenforce 0
     sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     yum clean all
-    yum update -y
+    #yum update -y
     yum install -y epel-release
     yum install -y docker bash-completion-extras iptables-services net-tools jq
     systemctl stop firewalld

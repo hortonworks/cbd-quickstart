@@ -1,7 +1,0 @@
-# this file is generted by: make get-latest-ami-mapping
----
-{{- $ver := httpget "https://atlas.hashicorp.com/api/v1/artifacts/hortonworks/cbd/amazon-linux.image/search" | json | pointer "/versions/0" }}
-         {{- range $k,$v :=  $ver.id | split "," | splitkv ":"}}
-    {{$k}}:
-        ami: "{{$v}}"
-          {{- end}}
