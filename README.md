@@ -13,8 +13,8 @@ This project is dedicated to provide template based solutions for creating Cloud
   - Git
   - Curl
   - Tar
+  - Docker
   - The node package manager (NPM)
-  - [AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
   - [Google cloud SDK](https://cloud.google.com/sdk/downloads)
 
 ## Commands
@@ -30,15 +30,18 @@ make deps
 ### Generate templates
 Run the following command to generate templates for all available cloud providers. The `VERSION` env variable needs to be exported or specified to run this command.
 > The generation can be run only for one provider: `make generate-azure`, `make generate-aws` and `make generate-gcp`
-> The AWS based template generation requires a fully configured AWS cli which has permission to upload the generated template into the bucket with name `UPLOAD_BUCKET` (The default value is `cbd-quickstart` by default).
+> According to the AWS documentation the Cloudformation Stack template URL must point to a template with a maximum size of 460,800 bytes that is stored in an S3 bucket that you have read permissions to... So the AWS template generation mechanism tries to upload the generated template to an existing S3 bucket and the `AWS_ACCESS_KEY_ID` and the `AWS_SECRET_ACCESS_KEY` env variables must be specified. The `UPLOAD_BUCKET` which value is `cbd-quickstart` by default could be overridden.
 
 ```
 export VERSION=2.7.0-dev.127
+export AWS_ACCESS_KEY_ID=XXXX.....
+export AWS_SECRET_ACCESS_KEY=XZZZD.....
+
 make generate-all
 ```
 or
 ```
-VERSION=2.7.0-dev.127 make generate-all
+AWS_SECRET_ACCESS_KEY=XZZZD..... AWS_ACCESS_KEY_ID=XXXX..... VERSION=2.7.0-dev.127 make generate-all
 ```
 
 ### Commit and push the result of the template generation to github
