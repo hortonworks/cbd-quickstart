@@ -3,12 +3,12 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "baseUrl": {
-    "type": "string",
-    "metadata": {
-         "description": "The base URL for dependent assets",
-         "artifactsBaseUrl": ""
-     },
-    "defaultValue": "https://raw.githubusercontent.com/hortonworks/azure-cbd-quickstart/{{$VERSION}}/"
+      "type": "string",
+      "metadata": {
+           "description": "The base URL for dependent assets",
+           "artifactsBaseUrl": ""
+       },
+      "defaultValue": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/{{$VERSION}}"
     },
     "location": {
     "type": "string",
@@ -142,8 +142,8 @@
       "contentVersion":"1.0.0.0"
     },
     "newStorageAccountName": "[concat('cbdstorage', uniqueString(resourceGroup().id))]",
-    "fileUris": "[concat(parameters('baseUrl'),'/install-cbd.sh')]",
-    "commandToExecute": "./install-cbd.sh",
+    "fileUris": "[concat(parameters('baseUrl'),'/install-and-start-cbd.sh')]",
+    "commandToExecute": "./install-and-start-cbd.sh",
     "scenarioPrefix": "cbdeployer",
     "imagePublisher": "OpenLogic",
     "imageOffer": "CentOS",
@@ -191,7 +191,7 @@
         "properties": {
             "mode": "Incremental",
             "templateLink": {
-              "uri": "[concat(parameters('baseUrl'), '/vnet_', parameters('vnetNewOrExisting'), '.json')]",
+              "uri": "[concat(parameters('baseUrl'), '/azure/vnet_', parameters('vnetNewOrExisting'), '.json')]",
               "contentVersion": "[variables('version').contentVersion]"
             },
             "parameters": {

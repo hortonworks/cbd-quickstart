@@ -27,17 +27,6 @@ resources:
       - cbd
       - cloudbreak-deployer
 
-- type: compute.v1.route
-  name: {{ env["deployment"] }}-default-route-2
-  properties:
-    network: $(ref.{{ env["deployment"] }}-network.selfLink)
-    priority: 100
-    destRange: 10.0.0.0/16
-    nextHopGateway: projects/{{ env['project'] }}/global/gateways/default-internet-gateway
-    tags:
-      - cbd
-      - cloudbreak-deployer
-
 - type: compute.v1.firewall
   name: firewall-{{ env["deployment"] }}
   properties:
@@ -45,9 +34,9 @@ resources:
     sourceRanges: [ "0.0.0.0/0" ]
     allowed:
     - IPProtocol: tcp
-      ports: [ "22", "443" ]
-- name: vm-{{ env["deployment"] }}
-  type: compute.v1.instance
+      ports: [ "22", "80", "443" ]
+- type: compute.v1.instance
+  name: vm-{{ env["deployment"] }}
   properties:
     zone: {{ properties["zone"] }}
     machineType: https://www.googleapis.com/compute/v1/projects/{{ env['project'] }}/zones/{{ properties["zone"] }}/machineTypes/{{ properties["instance_type"] }}
@@ -61,9 +50,26 @@ resources:
       boot: true
       autoDelete: true
       initializeParams:
-        sourceImage: https://www.googleapis.com/compute/v1/projects/centos-cloud/global/images/{{ properties["source_image"] }}
+        sourceImage: https://www.googleapis.com/compute/v1/projects/centos-cloud/global/images/family/centos-7
     networkInterfaces:
     - subnetwork:  $(ref.{{ env["deployment"] }}-subnet.selfLink)
       accessConfigs:
       - name: External NAT
         type: ONE_TO_ONE_NAT
+    metadata:
+      items:
+      - key: startup-script
+        value: |
+          #! /bin/bash
+          echo "export CBD_VERSION={{ properties["cbd_version"] }}" >> /tmp/.cbdprofile
+          echo "export OS_USER='{{ properties["os_user"] }}'" >> /tmp/.cbdprofile
+          echo "export UAA_DEFAULT_USER_EMAIL='{{ properties["user_email"] }}'" >> /tmp/.cbdprofile
+          echo "export UAA_DEFAULT_USER_PW='{{ properties["user_password"] }}'" >> /tmp/.cbdprofile
+          echo "export PUBLIC_IP=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip" -H "Metadata-Flavor: Google")" >> /tmp/.cbdprofile
+          echo "export CB_SMARTSENSE_CONFIGURE=false" >> /tmp/.cbdprofile
+          curl -Lo "/opt/install-cbd.sh" "{{ properties["startup-script"] }}"
+          chmod +x /opt/install-cbd.sh
+          ./opt/install-cbd.sh
+      - key: ssh-keys
+        value: |-
+          {{ properties["os_user"] }}: {{ properties["ssh_pub_key"] }}
