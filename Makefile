@@ -6,11 +6,11 @@ generate-azure: check-env
 	@echo "Updating Azure templates to CBD version: $(VERSION)"
 	make -C azure build
 
-generate-aws: check-env
+generate-aws: deps check-env
 	@echo "Updating AWS templates to CBD version: $(VERSION)"
 	make -C aws upload
 
-generate-gcp: check-env
+generate-gcp: deps check-env
 	@echo "Updating GCP templates to CBD version: $(VERSION)"
 	make -C gcp build
 
