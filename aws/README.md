@@ -1,8 +1,8 @@
 This repo contains Cloudbreak related AWS Cloudformation templates.
 
-## Cloudbreak template for version: 2.7.0-dev.127
+## Cloudbreak template for version: 2.7.0-dev.162
 
-<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.7.0-dev.127.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
+<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.7.0-dev.162.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
 
 
 ## Creating and uploading versioned templates
@@ -15,7 +15,7 @@ To generate the templates:
 make build
 ```
 
-The upload command will regenerate the template and also upload it to an S3 bucket that is `cbd-quickstart` by default. To do this the [AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) needs to be installed and configured on your machine.
+The upload command will regenerate the template and also upload it to an S3 bucket. The `AWS_ACCESS_KEY_ID` and the `AWS_SECRET_ACCESS_KEY` environment variables must be specified. The `UPLOAD_BUCKET` which value is `cbd-quickstart` by default could be overridden.
 
 To upload the generated templates to S3:
 ```
