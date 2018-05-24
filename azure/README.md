@@ -7,6 +7,6 @@ For Azure we have an alternative approach:
 - use [Docker VM Extension](https://github.com/Azure/azure-docker-extension) to install Docker
 - use [CustomScript Extension](https://github.com/Azure/azure-linux-extensions/tree/master/CustomScript) to install Cloudbreak Deployer (cbd)
 
-## Deploy 2.7.0-dev.167 via Azure web UI
+## Deploy 2.7.0-dev.168 via Azure web UI
 
-Click here: <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhortonworks%2Fcbd-quickstart%2F2.7.0-dev.167%2Fazure%2FmainTemplate.json">  ![deploy on azure](http://azuredeploy.net/deploybutton.png) </a>
+Click here: <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fhortonworks%2Fcbd-quickstart%2F2.7.0-dev.168%2Fazure%2FmainTemplate.json">  ![deploy on azure](http://azuredeploy.net/deploybutton.png) </a>
