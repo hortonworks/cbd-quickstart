@@ -8,7 +8,7 @@
            "description": "The base URL for dependent assets",
            "artifactsBaseUrl": ""
        },
-      "defaultValue": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.7.0-dev.166"
+      "defaultValue": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.7.0-dev.167"
     },
     "location": {
     "type": "string",
@@ -322,7 +322,7 @@
               ]
             }
           },
-          "customData": "[base64(concat('#!/bin/bash\n','\necho \"export PUBLIC_IP=',reference(variables('publicIPAddressName')).dnsSettings.fqdn,'\" >> /tmp/.cbdprofile','\necho \"export CB_TRAEFIK_HOST_ADDRESS=',reference(variables('publicIPAddressName')).ipAddress,'\" >> /tmp/.cbdprofile','\necho \"export CBD_VERSION=2.7.0-dev.166\" >> /tmp/.cbdprofile','\necho \"export AZURE_SUBSCRIPTION_ID=',subscription().subscriptionId,'\" >> /tmp/.cbdprofile','\necho \"export AZURE_TENANT_ID=',subscription().tenantId,'\" >> /tmp/.cbdprofile','\necho \"export UAA_DEFAULT_USER_EMAIL=',parameters('adminUsername'),'\" >> /tmp/.cbdprofile','\necho $',variables('singleQuote'), 'export UAA_DEFAULT_USER_PW=$\\',variables('singleQuote'),parameters('adminUserPassword'),'\\', variables('singleQuote'),variables('singleQuote'), '>> /tmp/.cbdprofile','\necho \"export CB_SMARTSENSE_CONFIGURE=',parameters('smartsense'),'\" >> /tmp/.cbdprofile','\necho \"export OS_USER=',parameters('username'),'\" >> /tmp/.cbdprofile', '\necho \"export ULU_DEFAULT_SSH_KEY=',variables('singleQuote'),parameters('sshKey'),variables('singleQuote'),'\" >> /tmp/.cbdprofile', '\necho \"export SUBNET_CIDR=',parameters('vnetSubnetAddressPrefix'),'\" >> /tmp/.cbdprofile', '\necho \"export UAA_DEFAULT_SECRET=',base64(resourceGroup().id),'\" >> /tmp/.cbdprofile'))]"
+          "customData": "[base64(concat('#!/bin/bash\n','\necho \"export PUBLIC_IP=',reference(variables('publicIPAddressName')).dnsSettings.fqdn,'\" >> /tmp/.cbdprofile','\necho \"export CB_TRAEFIK_HOST_ADDRESS=',reference(variables('publicIPAddressName')).ipAddress,'\" >> /tmp/.cbdprofile','\necho \"export CBD_VERSION=2.7.0-dev.167\" >> /tmp/.cbdprofile','\necho \"export AZURE_SUBSCRIPTION_ID=',subscription().subscriptionId,'\" >> /tmp/.cbdprofile','\necho \"export AZURE_TENANT_ID=',subscription().tenantId,'\" >> /tmp/.cbdprofile','\necho \"export UAA_DEFAULT_USER_EMAIL=',parameters('adminUsername'),'\" >> /tmp/.cbdprofile','\necho $',variables('singleQuote'), 'export UAA_DEFAULT_USER_PW=$\\',variables('singleQuote'),parameters('adminUserPassword'),'\\', variables('singleQuote'),variables('singleQuote'), '>> /tmp/.cbdprofile','\necho \"export CB_SMARTSENSE_CONFIGURE=',parameters('smartsense'),'\" >> /tmp/.cbdprofile','\necho \"export OS_USER=',parameters('username'),'\" >> /tmp/.cbdprofile', '\necho \"export ULU_DEFAULT_SSH_KEY=',variables('singleQuote'),parameters('sshKey'),variables('singleQuote'),'\" >> /tmp/.cbdprofile', '\necho \"export SUBNET_CIDR=',parameters('vnetSubnetAddressPrefix'),'\" >> /tmp/.cbdprofile', '\necho \"export UAA_DEFAULT_SECRET=',base64(resourceGroup().id),'\" >> /tmp/.cbdprofile'))]"
         },
         "storageProfile": {
           
