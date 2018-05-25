@@ -2,21 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "baseUrl": {
-      "type": "string",
-      "metadata": {
-           "description": "The base URL for dependent assets",
-           "artifactsBaseUrl": ""
-       },
-      "defaultValue": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.4.2-rc.32"
-    },
-    "location": {
-    "type": "string",
-    "metadata": {
-         "description": "Location of the resource group"
-     },
-    "defaultValue": "[resourceGroup().location]"
-    },
     "vmSize": {
       "type": "string",
       "defaultValue": "Standard_DS2",
@@ -61,17 +46,6 @@
       "defaultValue": "cloudbreak",
       "metadata": {
         "description": "Username for the Virtual Machine."
-      }
-    },
-    "smartsense": {
-      "type": "string",
-      "defaultValue": "false",
-      "allowedValues": [
-          "true",
-          "false"
-      ],
-      "metadata": {
-        "description": "By Opting-In, you read and agree to the SmartSense terms."
       }
     },
     "remoteLocation": {
@@ -125,7 +99,7 @@
     },
     "vnetRGName": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "[resourceGroup().location]",
       "minLength": 1,
       "metadata": {
         "description": "Name of the resource group of the VNet, must be the name of the resource group of the deployment if new VNet is selected!"
@@ -142,7 +116,6 @@
       "contentVersion":"1.0.0.0"
     },
     "newStorageAccountName": "[concat('cbdstorage', uniqueString(resourceGroup().id))]",
-    "fileUris": "[concat(parameters('baseUrl'),'/install-and-start-cbd.sh')]",
     "commandToExecute": "./install-and-start-cbd.sh",
     "scenarioPrefix": "cbdeployer",
     "imagePublisher": "OpenLogic",
@@ -159,14 +132,17 @@
     "vmStorageAccountContainerName": "vhds",
     "vmName": "[concat(variables('scenarioPrefix'),'VM')]",
     "virtualNetworkName": "[concat(variables('scenarioPrefix'),'Vnet')]",
-    "singleQuote": "'"
+    "singleQuote": "'",
+    "baseUrl": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.4.2-rc.32",
+    "fileUris": "https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.4.2-rc.32/install-and-start-cbd.sh",
+    "location": "[resourceGroup().location]"
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('newStorageAccountName')]",
       "apiVersion": "[variables('version').storageAPIVersion]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "kind": "Storage",
       "sku": {
         "name": "[variables('storageAccountType')]"
@@ -176,7 +152,7 @@
       "apiVersion": "[variables('version').networkAPIVersion]",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPAddressName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "properties": {
         "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
         "dnsSettings": {
@@ -191,7 +167,7 @@
         "properties": {
             "mode": "Incremental",
             "templateLink": {
-              "uri": "[concat(parameters('baseUrl'), '/azure/vnet_', parameters('vnetNewOrExisting'), '.json')]",
+              "uri": "[concat(variables('baseUrl'), '/azure/vnet_', parameters('vnetNewOrExisting'), '.json')]",
               "contentVersion": "[variables('version').contentVersion]"
             },
             "parameters": {
@@ -208,7 +184,7 @@
                     "value": "[parameters('vnetSubnetAddressPrefix')]"
                 },
                 "location": {
-                    "value": "[parameters('location')]"
+                    "value": "[variables('location')]"
                 }
             }
         }
@@ -217,7 +193,7 @@
       "apiVersion": "[variables('version').networkAPIVersion]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('securityGroupName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "properties": {
         "securityRules": [
           {
@@ -269,7 +245,7 @@
       "apiVersion": "[variables('version').networkAPIVersion]",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[variables('nicName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
         "[concat('Microsoft.Network/networkSecurityGroups/', variables('securityGroupName'))]",
@@ -299,7 +275,7 @@
       "apiVersion": "[variables('version').computeAPIVersion]",
       "type": "Microsoft.Compute/virtualMachines",
       "name": "[variables('vmName')]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "dependsOn": [
         "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
@@ -322,7 +298,7 @@
               ]
             }
           },
-          "customData": "[base64(concat('#!/bin/bash\n','\necho \"export PUBLIC_IP=',reference(variables('publicIPAddressName')).dnsSettings.fqdn,'\" >> /tmp/.cbdprofile','\necho \"export CB_TRAEFIK_HOST_ADDRESS=',reference(variables('publicIPAddressName')).ipAddress,'\" >> /tmp/.cbdprofile','\necho \"export CBD_VERSION=2.4.2-rc.32\" >> /tmp/.cbdprofile','\necho \"export AZURE_SUBSCRIPTION_ID=',subscription().subscriptionId,'\" >> /tmp/.cbdprofile','\necho \"export AZURE_TENANT_ID=',subscription().tenantId,'\" >> /tmp/.cbdprofile','\necho \"export UAA_DEFAULT_USER_EMAIL=',parameters('adminUsername'),'\" >> /tmp/.cbdprofile','\necho $',variables('singleQuote'), 'export UAA_DEFAULT_USER_PW=$\\',variables('singleQuote'),parameters('adminUserPassword'),'\\', variables('singleQuote'),variables('singleQuote'), '>> /tmp/.cbdprofile','\necho \"export CB_SMARTSENSE_CONFIGURE=',parameters('smartsense'),'\" >> /tmp/.cbdprofile','\necho \"export OS_USER=',parameters('username'),'\" >> /tmp/.cbdprofile', '\necho \"export ULU_DEFAULT_SSH_KEY=',variables('singleQuote'),parameters('sshKey'),variables('singleQuote'),'\" >> /tmp/.cbdprofile', '\necho \"export SUBNET_CIDR=',parameters('vnetSubnetAddressPrefix'),'\" >> /tmp/.cbdprofile', '\necho \"export UAA_DEFAULT_SECRET=',base64(resourceGroup().id),'\" >> /tmp/.cbdprofile'))]"
+          "customData": "[base64(concat('#!/bin/bash\n','\necho \"export PUBLIC_IP=',reference(variables('publicIPAddressName')).dnsSettings.fqdn,'\" >> /tmp/.cbdprofile','\necho \"export CB_TRAEFIK_HOST_ADDRESS=',reference(variables('publicIPAddressName')).ipAddress,'\" >> /tmp/.cbdprofile','\necho \"export CBD_VERSION=2.4.2-rc.32\" >> /tmp/.cbdprofile','\necho \"export AZURE_SUBSCRIPTION_ID=',subscription().subscriptionId,'\" >> /tmp/.cbdprofile','\necho \"export AZURE_TENANT_ID=',subscription().tenantId,'\" >> /tmp/.cbdprofile','\necho \"export UAA_DEFAULT_USER_EMAIL=',parameters('adminUsername'),'\" >> /tmp/.cbdprofile','\necho $',variables('singleQuote'), 'export UAA_DEFAULT_USER_PW=$\\',variables('singleQuote'),parameters('adminUserPassword'),'\\', variables('singleQuote'),variables('singleQuote'), '>> /tmp/.cbdprofile','\necho \"export OS_USER=',parameters('username'),'\" >> /tmp/.cbdprofile', '\necho \"export ULU_DEFAULT_SSH_KEY=',variables('singleQuote'),parameters('sshKey'),variables('singleQuote'),'\" >> /tmp/.cbdprofile', '\necho \"export SUBNET_CIDR=',parameters('vnetSubnetAddressPrefix'),'\" >> /tmp/.cbdprofile', '\necho \"export UAA_DEFAULT_SECRET=',base64(resourceGroup().id),'\" >> /tmp/.cbdprofile'))]"
         },
         "storageProfile": {
           
@@ -359,7 +335,7 @@
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('vmName'),'/installcustomscript')]",
       "apiVersion": "[variables('version').computeAPIVersion]",
-      "location": "[parameters('location')]",
+      "location": "[variables('location')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
       ],

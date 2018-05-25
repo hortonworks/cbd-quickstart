@@ -1,0 +1,337 @@
+
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploys a new Cloudbreak deployment for AWS into a new VPC.",
+  "Parameters": {
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength" : "1",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "RemoteLocation": {
+      "Description": "Allow connections from this address range. Must be a valid CIDR IP. Learn more at https://www.ipaddressguide.com/cidr.",
+      "ConstraintDescription": "must be a single IP address or an IP address range in CIDR notation (More information at https://www.ipaddressguide.com/cidr).",
+      "Type": "String",
+      "AllowedPattern" : "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
+    },
+    "EmailAddress" : {
+      "Description" : "Username for the Admin account. Must be a valid email address.",
+      "Type" : "String",
+      "MinLength" : "5",
+      "MaxLength" : "100",
+      "ConstraintDescription" : "must be a valid e-mail address",
+      "AllowedPattern" : "^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$"
+    },
+    "AdminPassword" : {
+      "Description" : "Password for Admin account. Must be at least 8 characters containing letters, numbers and symbols.",
+      "Type" : "String",
+      "NoEcho": "true",
+      "MinLength" : "8",
+      "MaxLength" : "50",
+      "ConstraintDescription" : "must be at least 8 characters containing letters, numbers and symbols.",
+      "AllowedPattern" : "^[^\\s\\t\\n\\r]{8,50}$"
+    },
+    "InstanceType" : {
+      "Description" : "EC2 instance type to use for the cloud controller.",
+      "Type" : "String",
+      "Default" : "m4.large",
+      "AllowedValues" : [ "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge" ]
+    }
+  },
+
+  "Metadata" : {
+      "AWS::CloudFormation::Interface" : {
+        "ParameterGroups" : [
+          {
+            "Label" : { "default" : "General Configuration" },
+            "Parameters" : [ "InstanceType", "EmailAddress", "AdminPassword" ]
+          },
+          {
+            "Label" : { "default" : "Security Configuration" },
+            "Parameters" : [ "KeyName", "RemoteLocation" ]
+          }
+        ],
+        "ParameterLabels" : {
+          "InstanceType" : { "default" : "Controller Instance Type" },
+          "EmailAddress" : { "default" : "Email Address" },
+          "AdminPassword" : { "default" : "Admin Password" },
+          "KeyName" : { "default" : "SSH Key Name"},
+          "RemoteLocation" : { "default" : "Remote Access" }
+        }
+      }
+  },
+
+  "Mappings": {
+      "AWSRegionAMI": {"ap-northeast-1":{"ami":"ami-92df37ed"},"ap-northeast-2":{"ami":"ami-c10fa6af"},"ap-south-1":{"ami":"ami-76d6f519"},"ap-southeast-1":{"ami":"ami-de90a5a2"},"ap-southeast-2":{"ami":"ami-423bec20"},"ca-central-1":{"ami":"ami-338a0a57"},"eu-central-1":{"ami":"ami-9a91b371"},"eu-west-1":{"ami":"ami-ca0135b3"},"eu-west-2":{"ami":"ami-a36f8dc4"},"eu-west-3":{"ami":"ami-969c2deb"},"sa-east-1":{"ami":"ami-3885d854"},"us-east-1":{"ami":"ami-14c5486b"},"us-east-2":{"ami":"ami-922914f7"},"us-west-1":{"ami":"ami-25110f45"},"us-west-2":{"ami":"ami-e251209a"}}
+   },
+
+   "Resources" : {
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : "10.0.0.0/16",
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "MapPublicIpOnLaunch" : true,
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : "10.0.0.0/24",
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "AttachGateway" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+         "VpcId" : { "Ref" : "VPC" },
+         "InternetGatewayId" : { "Ref" : "InternetGateway" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
+        ]
+      }
+    },
+
+    "PublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : [ "PublicRouteTable", "AttachGateway" ],
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "CloudbreakRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                     "Service": [ "ec2.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [ {
+               "PolicyName": "root",
+               "PolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [
+                  {
+                     "Effect": "Allow",
+                     "Action": [ "sts:AssumeRole" ],
+                     "Resource": "*"
+                  }, {
+                     "Effect": "Allow",
+                     "Action": [ "ec2:DescribeKeyPairs",
+                                 "ec2:DescribeInternetGateways",
+                                 "ec2:DescribeVpcs",
+                                 "ec2:DescribeSubnets",
+                                 "s3:CreateBucket",
+                                 "s3:PutObject",
+                                 "s3:ListAllMyBuckets",
+                                 "cloudformation:DescribeStackResource",
+                                 "iam:ListRoles" ],
+                     "Resource": "*"
+                  }
+                  ]
+               }
+               } ]
+            }
+      },
+      "RootInstanceProfile": {
+         "Type": "AWS::IAM::InstanceProfile",
+         "Properties": {
+            "Path": "/",
+            "Roles": [ {
+               "Ref": "CloudbreakRole"
+            } ]
+         }
+      },
+
+    "Cloudbreak": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn" : [ "PublicSubnetRouteTableAssociation", "PublicRoute" ],
+      "Metadata" : {
+        "cloudbreak" : {
+          "user" : { "Ref" : "EmailAddress" },
+          "password" : { "Ref" : "AdminPassword" },
+          "secret" : {
+              "default" : { "Fn::Base64" : { "Ref" : "AWS::StackId" } }
+          }
+        },
+        "profile" : { "Fn::Join" : ["", [
+          "export STACK_NAME=", { "Ref" : "AWS::StackName" }, "\n",
+          "export KEYPAIR_NAME=", { "Ref" : "KeyName" }, "\n",
+          "export WAIT_HANDLE_URL='", { "Ref" : "InstanceWaitHandle" }, "'\n",
+          "export UPLOAD_LOGS=NO\n",
+          "export VPC_ID='", { "Ref" : "VPC" } ,"'\n",
+          "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
+          "export IGW_ID='", { "Ref" : "InternetGateway" } ,"'\n",
+          "export CBD_VERSION=2.4.2-rc.32\n",
+          "export BUILD_CLUSTER=false\n",
+          "\n",
+          ""
+        ]]},
+        "cbdprofile" : { "Fn::Join" : ["", [
+          "get-meta() { aws --region ", { "Ref" : "AWS::Region" }, " cloudformation describe-stack-resource --stack-name ", { "Ref" : "AWS::StackName" }, " --logical-resource-id Cloudbreak | jq -r .StackResourceDetail.Metadata | jq -r $1; }", "\n",
+          "# START-CF-TEMPLATE\n",
+          "export UAA_DEFAULT_SECRET=$(get-meta '.cloudbreak.secret.default')", "\n",
+          "export COMPOSE_HTTP_TIMEOUT=240", "\n",
+          "export UAA_DEFAULT_USER_EMAIL='", { "Ref" : "EmailAddress" }, "'", "\n",
+          "export UAA_DEFAULT_USER_PW=''\n",
+          "export CB_AWS_DEFAULT_CF_TAG='", { "Ref" : "AWS::StackId" } ,"'", "\n",
+          "export AWS_REGION=", { "Ref" : "AWS::Region" }, "\n",
+          "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
+          "export AWS_AMI_ID=$(curl -4fs 169.254.169.254/latest/meta-data/ami-id)", "\n",
+          "export AWS_INSTANCE_ID=$(curl -4fs 169.254.169.254/latest/meta-data/instance-id)", "\n",
+          "export CB_TRAEFIK_HOST_ADDRESS=$(curl -m 1 -f -s 169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)", "\n",
+          "export ULU_SUBSCRIBE_TO_NOTIFICATIONS=false", "\n",
+          "export CB_DEFAULT_SUBSCRIPTION_ADDRESS=http://uluwatu.service.consul:3000/notifications", "\n",
+          "export CB_AWS_DEFAULT_INBOUND_SECURITY_GROUP=", { "Ref" : "CloudbreakSecurityGroup" }, "\n",
+          "# END-CF-TEMPLATE\n"
+
+        ]]}
+      },
+      "Properties": {
+        "IamInstanceProfile": { "Ref" : "RootInstanceProfile" },
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionAMI", { "Ref" : "AWS::Region" }, "ami" ] },
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "SecurityGroupIds" : [ { "Ref" : "CloudbreakSecurityGroup" } ],
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "KeyName"        : { "Ref" : "KeyName" },
+        "Tags" : [
+          { "Key" : "Name", "Value" : { "Fn::Join" : ["", [ { "Ref" : "AWS::StackName" }, "-cbd" ]] } }
+        ],
+        "UserData"       : "IyEvYmluL2Jhc2gKCjogJHtMT0dfTE9DQVRJT046PSIvdmFyL2xvZy9jYmQtcXVpY2stc3RhcnQubG9nIn0KCmlmIFtbICIkMCIgPT0gIiRCQVNIX1NPVVJDRSIgXV07IHRoZW4KICAgIGV4ZWMgPiA+KHRlZSAkTE9HX0xPQ0FUSU9OIHwgbG9nZ2VyIC10IHVzZXItZGF0YSAtcyAyPi9kZXYvY29uc29sZSkgMj4mMQogICAgCiAgICBzZXQgLW8gYWxsZXhwb3J0CiAgICBzZXQgLW8gZXJyZXhpdAogICAgc2V0IC1vIGVycnRyYWNlCiAgICAjIHNldCAtbyBub3Vuc2V0CiAgICBzZXQgLW8gbm9jbG9iYmVyCmZpCgo6ICR7VFJBQ0U6PSIifQo6ICR7REVCVUc6PTF9CjogJHtPU19VU0VSOj0iY2xvdWRicmVhayJ9CjogJHtDQkRfRElSOj0iL3Zhci9saWIvY2xvdWRicmVhay1kZXBsb3ltZW50In0KOiAke0FXU19CSU5fTE9DQVRJT046PSIvb3B0L2F3cy9iaW4ifQo6ICR7VVBMT0FEX0xPR1M6PSJOTyJ9CjogJHtJTlNUQU5DRV9MT0dJQ0FMX05BTUU6PUNsb3VkYnJlYWt9CjogJHtTRUNVUklUWV9HUk9VUF9OQU1FOj1DbG91ZGJyZWFrU2VjdXJpdHlHcm91cH0KCmlmIFtbICIkVFJBQ0UiIF1dOyB0aGVuCiAgICA6ICR7U1RBUlRfVElNRTo9JChkYXRlICslcyl9CiAgICBleHBvcnQgU1RBUlRfVElNRQogICAgZXhwb3J0IFBTND0nKyBbVFJBQ0UgJEJBU0hfU09VUkNFOiRMSU5FTk9dW2VsbGFwc2VkOiAkKCggJChkYXRlICslcykgLSAgJFNUQVJUX1RJTUUgKSldICcKICAgIHNldCAteApmaQoKdHJhcCAnX3RyYXBfZXJyb3IgJD8gJExJTkVOTyAkQkFTSF9MSU5FTk8gIiRCQVNIX0NPTU1BTkQiJyBFWElUCgpTSUdOQUxfUkVBU09OPSIiCl90cmFwX2Vycm9yICgpIHsKICAgIGxvY2FsIGVycj0iJHsxOi19IiBsaW5lPSIkezI6LX0iIF89IiR7MzotfSIgYmFkY29tbWFuZD0iJHs0Oi19IgoKICAgIHJtIC1mIC90bXAvLm1ldGFkYXRhLXByb2ZpbGUKICAgIHJtIC1mIC90bXAvLm1ldGFkYXRhLWNiZHByb2ZpbGUKCiAgICBpZiBbWyAgLWQgIiR7QVdTX0JJTl9MT0NBVElPTn0iIF1dOyB0aGVuCiAgICAgICAgaWYgWyAkZXJyIC1lcSAwIF07IHRoZW4KICAgICAgICAgICAgZGVidWcgImluc3RhbGxhdGlvbiBzdWNjZXNzIgogICAgICAgICAgICAkQVdTX0JJTl9MT0NBVElPTi9jZm4tc2lnbmFsIC1zIHRydWUgLWUgMCBcCiAgICAgICAgICAgICAgICAtLWlkICJDbG91ZFVSTCIgXAogICAgICAgICAgICAgICAgLS1kYXRhICJodHRwczovLyQoZ2V0X2F3c19wdWJsaWNfYWRkcmVzcykiIFwKICAgICAgICAgICAgICAgICIke1dBSVRfSEFORExFX1VSTH0iIHx8IHRydWUKICAgICAgICBlbHNlCiAgICAgICAgICAgIGlmICEgW1sgIiR7U0lHTkFMX1JFQVNPTn0iIF1dOyB0aGVuCiAgICAgICAgICAgICAgICBTSUdOQUxfUkVBU09OPSJFUlJPUjogY29tbWFuZCAnJHtiYWRjb21tYW5kfScgZXhpdGVkIHdpdGggc3RhdHVzOiAke2Vycn0gbGluZTogJHtsaW5lfSIKICAgICAgICAgICAgZmkKCiAgICAgICAgICAgIGRlYnVnICJpbnN0YWxsYXRpb24gZmFpbGVkOiAkU0lHTkFMX1JFQVNPTiIKICAgICAgICAgICAgJEFXU19CSU5fTE9DQVRJT04vY2ZuLXNpZ25hbCBcCiAgICAgICAgICAgICAgICAtcyBmYWxzZSBcCiAgICAgICAgICAgICAgICAtZSAiJHtlcnJ9IiBcCiAgICAgICAgICAgICAgICAtLWlkICJjYmQtaW5pdCIgXAogICAgICAgICAgICAgICAgLS1yZWFzb24gIiR7U0lHTkFMX1JFQVNPTn0iIFwKICAgICAgICAgICAgICAgICIke1dBSVRfSEFORExFX1VSTH0iIHx8IHRydWUKICAgICAgICBmaQoKICAgICAgICBpZiBbWyAiJFVQTE9BRF9MT0dTIiA9PSAiWUVTIiBdXTsgdGhlbgogICAgICAgICAgICBzYXZlX2xvZ19maWxlcwogICAgICAgIGZpCiAgICBmaQp9Cgppbml0KCkgewogICAgc2V0ZW5mb3JjZSAwCiAgICBzZWQgLWkgJ3MvU0VMSU5VWD1lbmZvcmNpbmcvU0VMSU5VWD1kaXNhYmxlZC9nJyAvZXRjL3NlbGludXgvY29uZmlnCiAgICB5dW0gY2xlYW4gYWxsCiAgICB5dW0gaW5zdGFsbCAteSBlcGVsLXJlbGVhc2UKICAgIHl1bSBpbnN0YWxsIC15IHVuemlwIGRvY2tlciBiYXNoLWNvbXBsZXRpb24tZXh0cmFzIGlwdGFibGVzLXNlcnZpY2VzIG5ldC10b29scyBqcQogICAgaWYgeXVtIGxpc3QgaW5zdGFsbGVkICJmaXJld2FsbGQiID4vZGV2L251bGwgMj4mMTsgdGhlbgogICAgICAgIHN5c3RlbWN0bCBzdG9wIGZpcmV3YWxsZAogICAgICAgIHN5c3RlbWN0bCBkaXNhYmxlIGZpcmV3YWxsZAogICAgZmkKICAgIGlwdGFibGVzIC0tZmx1c2ggSU5QVVQgJiYgXAogICAgaXB0YWJsZXMgLS1mbHVzaCBGT1JXQVJEICYmIFwKICAgIHNlcnZpY2UgaXB0YWJsZXMgc2F2ZQogICAgc2VkIC1pICdzLy0tc2VsaW51eC1lbmFibGVkLy9nJyAvZXRjL3N5c2NvbmZpZy9kb2NrZXIKICAgIHNlZCAtaSAncy8tLWxvZy1kcml2ZXI9am91cm5hbGQvL2cnIC9ldGMvc3lzY29uZmlnL2RvY2tlcgogICAgY2hrY29uZmlnIGRvY2tlciBvbgogICAgZ2V0ZW50IHBhc3N3ZCAkT1NfVVNFUiB8fCBhZGR1c2VyICRPU19VU0VSCiAgICBncm91cGFkZCBkb2NrZXIKICAgIHVzZXJtb2QgLWEgLUcgZG9ja2VyICRPU19VU0VSCiAgICBzZXJ2aWNlIGRvY2tlciByZXN0YXJ0Cn0KCmN1c3RvbV9kYXRhKCkgewogICAgc291cmNlIC90bXAvLmNiZHByb2ZpbGUKICAgIHJtIC90bXAvLmNiZHByb2ZpbGUKfQoKZ2V0X2F3c19zdGFja19uYW1lKCkgewogICAgZGVidWcgInJldHJpdmUgc3RhY2sgbmFtZSIKICAgIGN1cmwgLXMgMTY5LjI1NC4xNjkuMjU0L2xhdGVzdC9tZXRhLWRhdGEvc2VjdXJpdHktZ3JvdXBzL3xzZWQgInMvLSR7U0VDVVJJVFlfR1JPVVBfTkFNRX0uKi8vIgp9CgpnZXRfYXdzX3JlZ2lvbigpIHsKICAgIGRlYnVnICJyZXRyaXZlIHJlZ2lvbiIKICAgIHpvbmU9JChjdXJsIC1zIDE2OS4yNTQuMTY5LjI1NC9sYXRlc3QvbWV0YS1kYXRhL3BsYWNlbWVudC9hdmFpbGFiaWxpdHktem9uZSkKICAgIGVjaG8gJHt6b25lOjA6LTF9Cn0KCmdldF9hd3NfY2xvdWRicmVha19wYXNzd29yZCgpIHsKICAgIGRlYnVnICJyZXRyaXZlIENsb3VkYnJlYWsgcGFzc3dvcmQiCiAgICBsb2NhbCBzdGFja19uYW1lPSQoZ2V0X2F3c19zdGFja19uYW1lKQogICAgbG9jYWwgcmVnaW9uPSQoZ2V0X2F3c19yZWdpb24pCiAgICBsb2NhbCBtZXRhX2pzb249JChhd3MgLS1yZWdpb24gJHJlZ2lvbiBjbG91ZGZvcm1hdGlvbiBkZXNjcmliZS1zdGFjay1yZXNvdXJjZSAtLXN0YWNrLW5hbWUgJHN0YWNrX25hbWUgLS1sb2dpY2FsLXJlc291cmNlLWlkICRJTlNUQU5DRV9MT0dJQ0FMX05BTUUgMj4vZGV2L251bGwgfCBqcSAuU3RhY2tSZXNvdXJjZURldGFpbC5NZXRhZGF0YSAtciAyPi9kZXYvbnVsbCkKICAgIGVjaG8gJG1ldGFfanNvbiB8IGpxIC1yICIuY2xvdWRicmVhay5wYXNzd29yZCIgMj4vZGV2L251bGwKfQoKZ2V0X2F3c19wdWJsaWNfYWRkcmVzcygpIHsKICAgIGRlYnVnICJyZXRyaXZlIHB1YmxsaWMgaXAiCiAgICBwdWJsaWNfaXA9JChjdXJsIC00ZnMgMTY5LjI1NC4xNjkuMjU0L2xhdGVzdC9tZXRhLWRhdGEvcHVibGljLWhvc3RuYW1lKQogICAgaWYgW1sgLXogIiRwdWJsaWNfaXAiIF1dOyB0aGVuCiAgICAgICAgcHVibGljX2lwPSQoY3VybCAtNGZzIDE2OS4yNTQuMTY5LjI1NC9sYXRlc3QvbWV0YS1kYXRhL3B1YmxpYy1pcHY0KQogICAgZmkKICAgIGVjaG8gJHB1YmxpY19pcAp9CgpnZXRfYXdzX21ldGFkYXRhX3Byb2ZpbGUoKSB7CiAgICBkZWJ1ZyAicmV0cmlldmluZyBtZXRhZGF0YSIKCiAgICBzdGFja19uYW1lPSQoZ2V0X2F3c19zdGFja19uYW1lKQogICAgcmVnaW9uPSQoZ2V0X2F3c19yZWdpb24pCiAgICBleHBvcnQgQVdTX0RFRkFVTFRfUkVHSU9OPSR7cmVnaW9ufQoKICAgIGRlYnVnICJnZXQgcHJvZmlsZSBhdHRyaWJ1dGUgZnJvbSBjZm4gbWV0YWRhdGEgb2YgbG9naWNhbCByZXNvdXJjZTogJElOU1RBTkNFX0xPR0lDQUxfTkFNRSIKICAgIG1ldGFkYXRhPSQoYXdzIGNsb3VkZm9ybWF0aW9uIGRlc2NyaWJlLXN0YWNrLXJlc291cmNlIFwKICAgICAgICAtLXN0YWNrLW5hbWUgJHN0YWNrX25hbWUgXAogICAgICAgIC0tbG9naWNhbC1yZXNvdXJjZS1pZCAkSU5TVEFOQ0VfTE9HSUNBTF9OQU1FIFwKICAgICAgICAtLXF1ZXJ5ICdTdGFja1Jlc291cmNlRGV0YWlsLk1ldGFkYXRhJyAtLW91dCB0ZXh0KQoKICAgIGVjaG8gJG1ldGFkYXRhIHwganEgJy5wcm9maWxlJyAtciA+PiAvdG1wLy5tZXRhZGF0YS1wcm9maWxlCiAgICBlY2hvICRtZXRhZGF0YSB8IGpxICcuY2JkcHJvZmlsZScgLXIgPj4gL3RtcC8ubWV0YWRhdGEtY2JkcHJvZmlsZQoKICAgIHB1YmxpY19pcD0kKGN1cmwgLTRmcyAxNjkuMjU0LjE2OS4yNTQvbGF0ZXN0L21ldGEtZGF0YS9wdWJsaWMtaG9zdG5hbWUpCiAgICBkZWJ1ZyAicHVibGljIGlwIGlzOiAkcHVibGljX2lwIgogICAgaWYgW1sgLW4gIiRwdWJsaWNfaXAiIF1dOyB0aGVuCiAgICAgICAgZGVidWcgInVzaW5nIGhvc3RuYW1lIgogICAgICAgIGVjaG8gJ2V4cG9ydCBQVUJMSUNfSVA9JChjdXJsIC00ZnMgMTY5LjI1NC4xNjkuMjU0L2xhdGVzdC9tZXRhLWRhdGEvcHVibGljLWhvc3RuYW1lKScgPj4gL3RtcC8ubWV0YWRhdGEtY2JkcHJvZmlsZQogICAgZWxzZQogICAgICAgIGRlYnVnICJ1c2luZyBpcCIKICAgICAgICBlY2hvICdleHBvcnQgUFVCTElDX0lQPSQoY3VybCAtNGZzIDE2OS4yNTQuMTY5LjI1NC9sYXRlc3QvbWV0YS1kYXRhL3B1YmxpYy1pcHY0KScgPj4gL3RtcC8ubWV0YWRhdGEtY2JkcHJvZmlsZQogICAgZmkKCiAgICBkZWJ1ZyAic291cmNlIG1ldGFkYXRhIHRvIFByb2ZpbGUgYmUgYWJsZSB0byBnZW5lcmF0ZWQiCiAgICBzb3VyY2UgL3RtcC8ubWV0YWRhdGEtcHJvZmlsZQogICAgc291cmNlIC90bXAvLm1ldGFkYXRhLWNiZHByb2ZpbGUKfQoKCmRvd25sb2FkX2NiZCgpIHsKICAgIHNldCAteAogICAgY3VybCAtTHMgczMuYW1hem9uYXdzLmNvbS9wdWJsaWMtcmVwby0xLmhvcnRvbndvcmtzLmNvbS9IRFAvY2xvdWRicmVhay9jbG91ZGJyZWFrLWRlcGxveWVyXyR7Q0JEX1ZFUlNJT059XyQodW5hbWUpX3g4Nl82NC50Z3ogfCB0YXIgLXh6IC1DIC9iaW4gY2JkCiAgICBta2RpciAkQ0JEX0RJUgogICAgY2QgJF8KfQoKZG93bmxvYWRfY2JfY2xpKCkgewogICAgY3VybCAtTHMgaHR0cHM6Ly9zMy11cy13ZXN0LTIuYW1hem9uYXdzLmNvbS9jYi1jbGkvY2ItY2xpXyR7Q0JEX1ZFUlNJT059XyQodW5hbWUpX3g4Nl82NC50Z3ogfCBzdWRvIHRhciAteHogLUMgL2JpbiBjYgp9CgppbnN0YWxsX2NiZCgpIHsKICAgIGVjaG8gImV4cG9ydCBQVUJMSUNfSVA9JFBVQkxJQ19JUCIgPiBQcm9maWxlCiAgICBpZiBbWyAtbiAiJENCX1RSQUVGSUtfSE9TVF9BRERSRVNTIiBdXTsgdGhlbgogICAgICAgIGVjaG8gImV4cG9ydCBDQl9UUkFFRklLX0hPU1RfQUREUkVTUz0kQ0JfVFJBRUZJS19IT1NUX0FERFJFU1MiID4+IFByb2ZpbGUKICAgICAgICBlY2hvICJleHBvcnQgREVGQVVMVF9JTkJPVU5EX0FDQ0VTU19JUD0kQ0JfVFJBRUZJS19IT1NUX0FERFJFU1MiID4+IFByb2ZpbGUKICAgIGZpCiAgICBpZiBbWyAtbiAiJEFaVVJFX1RFTkFOVF9JRCIgXV07IHRoZW4KICAgICAgICBlY2hvICJleHBvcnQgQVpVUkVfVEVOQU5UX0lEPSRBWlVSRV9URU5BTlRfSUQiID4+IFByb2ZpbGUKICAgIGZpCiAgICBpZiBbWyAtbiAiJEFaVVJFX1NVQlNDUklQVElPTl9JRCIgXV07IHRoZW4KICAgICAgICBlY2hvICJleHBvcnQgQVpVUkVfU1VCU0NSSVBUSU9OX0lEPSRBWlVSRV9TVUJTQ1JJUFRJT05fSUQiID4+IFByb2ZpbGUKICAgIGZpCiAgICBpZiBbWyAtbiAiJFVMVV9ERUZBVUxUX1NTSF9LRVkiIF1dOyB0aGVuCiAgICAgICAgZWNobyAiZXhwb3J0IFVMVV9ERUZBVUxUX1NTSF9LRVk9JyRVTFVfREVGQVVMVF9TU0hfS0VZJyIgPj4gUHJvZmlsZQogICAgZmkKICAgIGVjaG8gImV4cG9ydCBVQUFfREVGQVVMVF9VU0VSX0VNQUlMPSRVQUFfREVGQVVMVF9VU0VSX0VNQUlMIiA+PiBQcm9maWxlCiAgICBlY2hvICJleHBvcnQgVUFBX0RFRkFVTFRfVVNFUl9QVz0nJyIgPj4gUHJvZmlsZQogICAgZWNobyAiZXhwb3J0IFVBQV9ERUZBVUxUX1NFQ1JFVD0kVUFBX0RFRkFVTFRfU0VDUkVUIiA+PiBQcm9maWxlCiAgICBlY2hvICJleHBvcnQgQ0JfSU5TVEFOQ0VfVVVJRD0kKHV1aWRnZW4gfCB0ciAnWzp1cHBlcjpdJyAnWzpsb3dlcjpdJykiID4+IFByb2ZpbGUKICAgIGVjaG8gImV4cG9ydCBDQl9IT1NUX0FERFJFU1M9aHR0cDovL2xvY2FsaG9zdDo4MDgwIiA+PiBQcm9maWxlCiAgICBlY2hvICJleHBvcnQgVUxVX1NVQlNDUklCRV9UT19OT1RJRklDQVRJT05TPWZhbHNlIiA+PiBQcm9maWxlCiAgICBlY2hvICJleHBvcnQgQ0JfREVGQVVMVF9TVUJTQ1JJUFRJT05fQUREUkVTUz1odHRwOi8vdWx1d2F0dS5zZXJ2aWNlLmNvbnN1bDozMDAwL25vdGlmaWNhdGlvbnMiID4+IFByb2ZpbGUKCiAgICBkZWJ1ZyAiU3RhcnRpbmcgQ2xvdWRicmVhay4uIgogICAgZGVidWcgJChkYXRlICsiJVQiKQogICAgY2JkIGdlbmVyYXRlCiAgICBjYmQgcHVsbC1wYXJhbGxlbAogICAgY2JkX3N0YXJ0X3dhaXQKICAgIGRlYnVnICJDbG91ZGJyZWFrIGhhcyBiZWVuIHN0YXJ0ZWQuIgogICAgZGVidWcgJChkYXRlICsiJVQiKQoKICAgIGRlYnVnICJDcmVhdGluZyBkZWZhdWx0IHVzZXIuLiIKICAgIGNwIFByb2ZpbGUgUHJvZmlsZS50bXAKCiAgICBpZiBbWyAtZCAiJHtBV1NfQklOX0xPQ0FUSU9OfSIgXV07IHRoZW4KICAgICAgICBVQUFfREVGQVVMVF9VU0VSX1BXPSQoZ2V0X2F3c19jbG91ZGJyZWFrX3Bhc3N3b3JkKQogICAgZmkKCiAgICBlY2hvICJleHBvcnQgVUFBX0RFRkFVTFRfVVNFUl9QVz0nJChlc2NhcGUtc3RyaW5nICRVQUFfREVGQVVMVF9VU0VSX1BXIFwnKSciID4+IFByb2ZpbGUudG1wCiAgICBDQkRfREVGQVVMVF9QUk9GSUxFPXRtcCBjYmQgdXRpbCBhZGQtZGVmYXVsdC11c2VyCiAgICBybSAtZiBQcm9maWxlLnRtcAogICAgZGVidWcgIkRlZmF1bHQgdXNlciBjcmVhdGVkLi4iCgp9CgpkZWJ1ZygpIHsKICBbWyAiJERFQlVHIiBdXSAmJiBlY2hvICItLS0tLT4gJCoiIDE+JjIKfQoKZXNjYXBlLXN0cmluZygpIHsKICAgIGRlY2xhcmUgZGVzYz0iZXNjYXBlIGJhc2ggc3RyaW5nIGJ5IGRlbGltaXRlciB0eXBlIgogICAgOiAkezI6PXJlcXVpcmVkfQogICAgbG9jYWwgaW49JDEKICAgIGxvY2FsIGRlbGltaXRlcj0kMgoKICAgIGlmIFtbICRkZWxpbWl0ZXIgPT0gIiciIF1dOyB0aGVuCiAgICAgICAgb3V0PWBlY2hvICRpbiB8IHNlZCAtZSAicy8nLydcXFxcXFwnJy9nImAKICAgIGVsaWYgW1sgJGRlbGltaXRlciA9PSAnIicgXV07IHRoZW4KICAgICAgICBvdXQ9YGVjaG8gJGluIHwgc2VkIC1lICdzL1xcXFwvXFxcXFxcXC9nJyAtZSAncy8iL1xcXCIvZycgLWUgJ3MvWyRdL1wkL2cnIC1lICJzL1xcXGAvXFxcXFxcXFxcXFxcXFxcYC9nIiAtZSAncy8hL1xcXFwhL2cnYAogICAgZWxzZQogICAgICAgIG91dD0iJGluIgogICAgZmkKCiAgICBlY2hvICRvdXQKfQoKY2JkX3N0YXJ0X3dhaXQoKSB7CiAgICBkZWNsYXJlIGRlc2M9IndhaXRpbmcgZm9yIENsb3VkYnJlYWsiCiAgICBkZWJ1ZyAkZGVzYwoKICAgIGZvciB0IGluICQoc2VxIDEgMSAke1JFVFJZX1NUQVJUX0NPVU5UOj01fSk7IGRvCiAgICAgICAgZGVidWcgInRyaWVzOiAkdCIKICAgICAgICBjYmQgc3RhcnQtd2FpdCAmJiBicmVhawogICAgICAgIHNlcnZpY2UgZG9ja2VyIHJlc3RhcnQKICAgICAgICB3YWl0X2Zvcl9kb2NrZXIKICAgICAgICBjYmQga2lsbAogICAgICAgIHNsZWVwICR7UkVUUllfU1RBUlRfU0xFRVA6PTV9CiAgICAgICAgaWYgW1sgdCAtZXEgJHtSRVRSWV9TVEFSVF9DT1VOVH0gXV07IHRoZW4KICAgICAgICAgIGRlYnVnICJFeGl0aW5nIGR1ZSB0byBleGNlZWRlZCByZXRyaWVzLi4iCiAgICAgICAgICBleGl0IDEKICAgICAgICBmaQogICAgZG9uZQp9Cgp3YWl0X2Zvcl9kb2NrZXIoKSB7CiAgZGVjbGFyZSBkZXNjPSJ3YWl0IGZvciBkb2NrZXIgLi4uIgogIGRlYnVnICRkZXNjCgogIHdoaWxlICEgKGRvY2tlciBpbmZvICY+L2Rldi9udWxsKTsgZG8gZWNobyAtbiAuOyBzbGVlcCAxOyBkb25lCn0KCnNldF9wZXJtKCkgewogICAgY2hvd24gLVIgJE9TX1VTRVI6JE9TX1VTRVIgJENCRF9ESVIKICAgIHdob2FtaQp9Cgphd3NfcHJlcGFyZV9vc191c2VyKCkgewogICAgbWtkaXIgLXAgL2hvbWUvJE9TX1VTRVIvLnNzaAogICAgY3AgL2hvbWUvZWMyLXVzZXIvLnNzaC9hdXRob3JpemVkX2tleXMgL2hvbWUvJE9TX1VTRVIvLnNzaC8KICAgIGNob3duIC1SICRPU19VU0VSOiRPU19VU0VSIC9ob21lLyRPU19VU0VSLy5zc2gKICAgIHNlcnZpY2Ugc3NoZCByZWxvYWQKICAgIGVjaG8gIiMgVGhpcyBpcyBnZW5lcmF0ZWQgYnkgdGhlIENsb3VkYnJlYWsgZGVwbG95bWVudCdzIGNsb3VkLWluaXQgc2NyaXB0IiA+PiAvZXRjL3N1ZG9lcnMuZC9jbG91ZGJyZWFrCiAgICBlY2hvICJjbG91ZGJyZWFrIEFMTD0oQUxMKSBOT1BBU1NXRDpBTEwiID4+IC9ldGMvc3Vkb2Vycy5kL2Nsb3VkYnJlYWsKfQoKbWFpbigpIHsKICAgIGluaXQKCiAgICBpZiBbWyAtZCAiJHtBV1NfQklOX0xPQ0FUSU9OfSIgXV07IHRoZW4KICAgICAgICBnZXRfYXdzX21ldGFkYXRhX3Byb2ZpbGUKICAgICAgICBhd3NfcHJlcGFyZV9vc191c2VyCiAgICAgICAgOiAke1dBSVRfSEFORExFX1VSTDo/IHJlcXVpcmVkfQogICAgZWxzZQogICAgICAgIGN1c3RvbV9kYXRhCiAgICBmaQoKICAgIGRvd25sb2FkX2NiZAogICAgZG93bmxvYWRfY2JfY2xpCiAgICBzZXRfcGVybQogICAgc3UgJE9TX1VTRVIgLWMgImluc3RhbGxfY2JkIgp9CgpbWyAiJDAiID09ICIkQkFTSF9TT1VSQ0UiIF1dICYmIG1haW4gIiRAIiB8fCB0cnVlCg=="
+      }
+    },
+
+    "InstanceWaitHandle" : {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "InstanceWaitCondition" : {
+       "Type" : "AWS::CloudFormation::WaitCondition",
+       "DependsOn" : "Cloudbreak",
+       "Properties" : {
+          "Handle"  : { "Ref" : "InstanceWaitHandle" },
+          "Timeout" : 36000
+       }
+    },
+
+    "PrecheckDeployment": {
+      "Type": "Custom::PrecheckDeployment",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": ["ValidateParameters", "Arn"]
+        }
+      }
+    },
+
+    "ValidateParameters": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
+        },
+        "Code": {
+          "ZipFile": "send=function(e,t,n,s){var o=JSON.stringify({Status:n,Reason:s+\" CloudWatch Log: \"+t.logStreamName,PhysicalResourceId:t.logStreamName,StackId:e.StackId,RequestId:e.RequestId,LogicalResourceId:e.LogicalResourceId}),r=require(\"https\"),i=require(\"url\").parse(e.ResponseURL),u={hostname:i.hostname,port:443,path:i.path,method:\"PUT\",headers:{\"content-type\":\"\",\"content-length\":o.length}},c=r.request(u,function(e){console.log(\"Response status code: \"+e.statusCode),console.log(\"Response status message: \"+e.statusMessage),t.done()});c.on(\"error\",function(e){t.done()}),c.write(o),c.end()},describeSubnet=function(e,o,r){return new Promise(function(n,s){e.describeSubnets({Filters:[{Name:\"subnet-id\",Values:[r]}]},function(e,t){e?s(\"describeSubnets call failed: \"+e):0<t.Subnets.length?t.Subnets[0].VpcId==o?(console.log(\"Subnet is within the VPC\"),n()):s(\"The selected subnet belongs to a different VPC.\"):s(\"There is no subnet with id: \"+r)})})},describeVPCAttribute=function(e,t){return new Promise(function(n,s){e.describeVpcAttribute({Attribute:\"enableDnsSupport\",VpcId:t},function(e,t){e?s(\"describeVpcAttribute call failed: \"+e):t.EnableDnsSupport.Value?(console.log(\"DNS resolution is enabled in the VPC\"),n()):s(\"DNS resolution must be enabled in the VPC\")})})},exports.handler=function(t,n,s){if(console.log(\"REQUEST RECEIVED:\\n\",JSON.stringify(t)),\"Create\"!=t.RequestType)send(t,n,\"SUCCESS\");else{if(null==t.ResourceProperties.VPC||null==t.ResourceProperties.SUBNET)return void send(t,n,\"SUCCESS\");var e=t.ResourceProperties.VPC,o=t.ResourceProperties.SUBNET;if(!e&&!o)return void send(t,n,\"FAILED\",\"Both VPC and Subnet ID must be specified!\");var r=new(require(\"aws-sdk\").EC2);describeSubnet(r,e,o).then(function(){return describeVPCAttribute(r,e)}).then(function(){send(t,n,\"SUCCESS\"),s(null,\"VPC and subnet has been validated.\")}).catch(function(e){send(t,n,\"FAILED\",e),s(e)})}};"
+        },
+        "Runtime": "nodejs4.3",
+        "Timeout": "60"
+      }
+    },
+
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": ["lambda.amazonaws.com"]
+            },
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                "Resource": "arn:aws:logs:*:*:*"
+              }
+            ]
+          }
+        }]
+      }
+    },
+    "CloudbreakSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "GroupDescription" : "Enable HTTP access to Cloud UI and SSH access from a remote location",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : { "Ref" : "RemoteLocation" } },
+          {"IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : { "Ref" : "RemoteLocation" } },
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "RemoteLocation" } }
+        ]
+      }
+    }
+   },
+
+  "Outputs" : {
+    "CloudController" : {
+      "Value" : { "Fn::GetAtt" : [ "InstanceWaitCondition", "Data" ]},
+      "Description" : "URL to the Cloudbreak deployment's UI. Login using the Admin account information you provided during Create Stack."
+    },
+    "SshAccess" : {
+      "Value" : { "Fn::Join" : ["", ["ssh -i ", { "Ref" : "KeyName" }, ".pem cloudbreak@", { "Fn::GetAtt" : [ "Cloudbreak", "PublicIp" ]} ]] },
+      "Description" : "Access the instance via ssh"
+    }
+  }
+}
