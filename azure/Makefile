@@ -6,7 +6,7 @@ echo_version: check-env
 
 build: check-env
 	./create-template.sh
-	sigil -f README.md.tmpl VERSION="$(VERSION)" > README.md
+	sigil -f README.md.tmpl VERSION="$(VERSION)" OS_IMAGE_SKU_VERSION="$(OS_IMAGE_SKU_VERSION)" > README.md
 
 build-as-snapshot:
 	rm -rf build
