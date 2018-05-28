@@ -99,7 +99,7 @@
     },
     "vnetRGName": {
       "type": "string",
-      "defaultValue": "[resourceGroup().location]",
+      "defaultValue": "",
       "minLength": 1,
       "metadata": {
         "description": "Name of the resource group of the VNet, must be the name of the resource group of the deployment if new VNet is selected!"
@@ -306,7 +306,7 @@
             "publisher": "[variables('imagePublisher')]",
             "offer": "[variables('imageOffer')]",
             "sku": "[variables('imageSku')]",
-            "version": "latest"
+            "version": "7.4.20180417"
           },
           
           "osDisk": {
