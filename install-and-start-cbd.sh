@@ -37,6 +37,10 @@ _trap_error () {
     rm -f /tmp/.metadata-profile
     rm -f /tmp/.metadata-cbdprofile
 
+    if ! [[ "${SIGNAL_REASON}" ]]; then
+        SIGNAL_REASON="ERROR: command '${badcommand}' exited with status: ${err} line: ${line}"
+    fi
+
     if [[  -d "${AWS_BIN_LOCATION}" ]]; then
         if [ $err -eq 0 ]; then
             debug "installation success"
@@ -45,10 +49,6 @@ _trap_error () {
                 --data "https://$(get_aws_public_address)" \
                 "${WAIT_HANDLE_URL}" || true
         else
-            if ! [[ "${SIGNAL_REASON}" ]]; then
-                SIGNAL_REASON="ERROR: command '${badcommand}' exited with status: ${err} line: ${line}"
-            fi
-
             debug "installation failed: $SIGNAL_REASON"
             $AWS_BIN_LOCATION/cfn-signal \
                 -s false \
@@ -60,6 +60,16 @@ _trap_error () {
 
         if [[ "$UPLOAD_LOGS" == "YES" ]]; then
             save_log_files
+        fi
+    fi
+
+    if [[ -n "$GCP_RUNTIME_CONFIG_NAME" ]]; then
+        if [ $err -eq 0 ]; then
+            debug "installation success"
+            gcloud beta runtime-config configs variables set success/my-instance success --config-name $GCP_RUNTIME_CONFIG_NAME
+        else
+            debug "installation failed: $SIGNAL_REASON"
+            gcloud beta runtime-config configs variables set failure/my-instance failure --config-name $GCP_RUNTIME_CONFIG_NAME
         fi
     fi
 }

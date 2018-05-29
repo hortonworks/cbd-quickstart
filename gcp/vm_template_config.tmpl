@@ -2,7 +2,7 @@ imports:
 - path: vm-template.jinja
 
 resources:
-- name: my-vm
+- name: deployment-vm
   type: vm-template.jinja
   properties:
     cbd_version: {{ $VERSION }}
@@ -15,3 +15,8 @@ resources:
     os_user: cloudbreak
     user_email: admin@example.com
     user_password: cloudbreak
+    service_account_email: ...
+
+outputs:
+- name: deploymentIp
+  value: $(ref.deployment-vm.deploymentIp)
