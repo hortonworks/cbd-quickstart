@@ -291,7 +291,7 @@
             "Statement": [{
                 "Effect": "Allow",
                 "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
-                "Resource": "arn:aws:logs:*:*:*"
+                "Resource": { "Fn::Join" : ["", [ "arn:aws:logs:", { "Ref" : "AWS::Region" }, ":", { "Ref" : "AWS::AccountId" } , ":*", ""]] }
               }
             ]
           }
