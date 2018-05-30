@@ -5,12 +5,13 @@ resources:
 - name: my-vm
   type: vm-template.jinja
   properties:
-    cbd_version: 2.4.2-rc.34
-    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.4.2-rc.34/install-and-start-cbd.sh
+    cbd_version: 2.4.2
+    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.4.2/install-and-start-cbd.sh
     region: us-central1
     zone: us-central1-a
     instance_type: n1-standard-4
-    ssh_pub_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDlxDlUsUULprTTXd8wd4IVI53B/p0WCRobXjLRFvWmcE+wBOuaTAPrEjAtZs+rX4abxW08msNlbGiobB6tXuK7UtgQKgCYXtLbd7Hv94JrTdBZjpDr6B2fmUBdDMRH5r0egJ44vtbVts1Zv9ux1tuuwDPC7Mh47tXwGNnXOSyhUtODOjAFS7FCaOEE2n3oH703tDaMhg8ciYsiXTencRZ/Zgrd3Nx3Re3nDod6vXtxWP4eSsQsiQuTpqAXJXsO5ez7ENYH88jEee/ipMBjQZbqmt7pGLGH0+u3dFT3SuyBjnDl5Fijf89J0AhhVYcZcDeXJKrRitStG741xFPBd+JP cloudbreak
+    source_image: centos-7-v20180523
+    ssh_pub_key: ...
     os_user: cloudbreak
     user_email: admin@example.com
     user_password: cloudbreak
