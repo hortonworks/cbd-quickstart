@@ -37,23 +37,7 @@
       "Type" : "String",
       "Default" : "m4.large",
       "AllowedValues" : [ "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge" ]
-    },
-    "SmartSenseId": {
-      "Description": "Enter your existing SmartSenseID (if available). You must also opt-in to SmartSense telemetry below. This ID is required to enable support for Flex Subscriptions. Learn more at http://tinyurl.com/hdcloud-1-16-0-flex-1.",
-      "Type": "String",
-      "ConstraintDescription" :"Should be empty or a valid SmartSense subscription id like 'A-00000000-C-00000000'!",
-      "AllowedPattern": "^$|([a-zA-Z]{1}-[0-9]{8}-[a-zA-Z]{1}-[0-9]{8}$)"
-    },
-    "ProductTelemetry" : {
-      "Description" : "By Opting-In, you read and agree to the SmartSense terms at http://hortonworks.github.io/hdp-aws/smartsense/index.html.",
-      "Type" : "String",
-      "Default" : "I Have Read and Opt In to SmartSense Telemetry",
-      "AllowedValues" : [ "I Have Read and Opt In to SmartSense Telemetry", "I Do Not Opt In to SmartSense Telemetry" ]
     }
-  },
-
-  "Conditions" : {
-    "AllowProductTelemetry" : {"Fn::Equals" : [{"Ref" : "ProductTelemetry"}, "I Have Read and Opt In to SmartSense Telemetry"]}
   },
 
   "Metadata" : {
@@ -66,18 +50,12 @@
           {
             "Label" : { "default" : "Security Configuration" },
             "Parameters" : [ "KeyName", "RemoteLocation" ]
-          },
-          {
-            "Label" : { "default" : "SmartSense Configuration" },
-            "Parameters" : [ "SmartSenseId", "ProductTelemetry" ]
           }
         ],
         "ParameterLabels" : {
           "InstanceType" : { "default" : "Controller Instance Type" },
           "EmailAddress" : { "default" : "Email Address" },
           "AdminPassword" : { "default" : "Admin Password" },
-          "ProductTelemetry" : { "default" : "Telemetry Opt In" },
-          "SmartSenseId" : { "default" : "SmartSenseID" },
           "KeyName" : { "default" : "SSH Key Name"},
           "RemoteLocation" : { "default" : "Remote Access" }
         }
@@ -177,22 +155,10 @@
                "PolicyDocument": {
                   "Version" : "2012-10-17",
                   "Statement": [
-                  {
+                 {
                      "Effect": "Allow",
-                     "Action": [ "sts:AssumeRole" ],
-                     "Resource": "*"
-                  }, {
-                     "Effect": "Allow",
-                     "Action": [ "ec2:DescribeKeyPairs",
-                                 "ec2:DescribeInternetGateways",
-                                 "ec2:DescribeVpcs",
-                                 "ec2:DescribeSubnets",
-                                 "s3:CreateBucket",
-                                 "s3:PutObject",
-                                 "s3:ListAllMyBuckets",
-                                 "cloudformation:DescribeStackResource",
-                                 "iam:ListRoles" ],
-                     "Resource": "*"
+                     "Action": [ "cloudformation:DescribeStackResource" ],
+                     "Resource": { "Fn::Join" : ["", [ "arn:aws:cloudformation:", { "Ref" : "AWS::Region" }, ":", { "Ref" : "AWS::AccountId" } , ":stack/", { "Ref" : "AWS::StackName" }, "/*", ""]] }
                   }
                   ]
                }
@@ -223,11 +189,9 @@
         "profile" : { "Fn::Join" : ["", [
           "export STACK_NAME=", { "Ref" : "AWS::StackName" }, "\n",
           "export KEYPAIR_NAME=", { "Ref" : "KeyName" }, "\n",
-          "export PRODUCT_TELEMETRY='", { "Ref" : "ProductTelemetry" }, "'\n",
           "export WAIT_HANDLE_URL='", { "Ref" : "InstanceWaitHandle" }, "'\n",
           "export UPLOAD_LOGS=NO\n",
           "export VPC_ID='", { "Ref" : "VPC" } ,"'\n",
-          "export CB_SMARTSENSE_ID=", { "Ref" : "SmartSenseId" }, "\n",
           "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
           "export IGW_ID='", { "Ref" : "InternetGateway" } ,"'\n",
           "export CBD_VERSION={{ $CBD_VERSION }}\n",
@@ -248,7 +212,6 @@
           "export AWS_AMI_ID=$(curl -4fs 169.254.169.254/latest/meta-data/ami-id)", "\n",
           "export AWS_INSTANCE_ID=$(curl -4fs 169.254.169.254/latest/meta-data/instance-id)", "\n",
           "export CB_TRAEFIK_HOST_ADDRESS=$(curl -m 1 -f -s 169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)", "\n",
-          "export CB_SMARTSENSE_CONFIGURE=", { "Fn::If" : ["AllowProductTelemetry", "true", "false"]}, "\n",
           "export ULU_SUBSCRIBE_TO_NOTIFICATIONS=false", "\n",
           "export CB_DEFAULT_SUBSCRIPTION_ADDRESS=http://uluwatu.service.consul:3000/notifications", "\n",
           "export CB_AWS_DEFAULT_INBOUND_SECURITY_GROUP=", { "Ref" : "CloudbreakSecurityGroup" }, "\n",
@@ -288,12 +251,6 @@
       "Properties": {
         "ServiceToken": {
           "Fn::GetAtt": ["ValidateParameters", "Arn"]
-        },
-        "SSID": {
-          "Ref": "SmartSenseId"
-        },
-        "SSEnabled": {
-          "Ref": "ProductTelemetry"
         }
       }
     },

@@ -184,14 +184,6 @@ install_cbd() {
     echo "export CB_HOST_ADDRESS=http://localhost:8080" >> Profile
     echo "export ULU_SUBSCRIBE_TO_NOTIFICATIONS=false" >> Profile
     echo "export CB_DEFAULT_SUBSCRIPTION_ADDRESS=http://uluwatu.service.consul:3000/notifications" >> Profile
-    if [[ -n "$CB_SMARTSENSE_CONFIGURE" ]]; then
-        echo "export CB_SMARTSENSE_CONFIGURE=$CB_SMARTSENSE_CONFIGURE" >> Profile
-    fi
-    if [[ ! "$CB_SMARTSENSE_ID" && "$CB_SMARTSENSE_CONFIGURE" == true ]]; then
-      AZURE_SUBSCRIPTION_ID_NUMBER="$((0x$(sha1sum <<<"$AZURE_SUBSCRIPTION_ID")0))"
-      CB_SMARTSENSE_ID="A-9990${AZURE_SUBSCRIPTION_ID_NUMBER:1:4}-C-${AZURE_SUBSCRIPTION_ID_NUMBER:5:8}"
-    fi
-    echo "export CB_SMARTSENSE_ID=${CB_SMARTSENSE_ID}" >> Profile
 
     debug "Starting Cloudbreak.."
     debug $(date +"%T")
