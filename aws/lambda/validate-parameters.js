@@ -75,12 +75,6 @@ describeVPCAttribute = function(ec2, vpcId) {
 exports.handler = function(event, context, callback) {
     console.log('REQUEST RECEIVED:\\n', JSON.stringify(event));
     if (event.RequestType == 'Create') {
-        var ssid = event.ResourceProperties.SSID;
-        var ssenabled = event.ResourceProperties.SSEnabled;
-        if (ssid && ssenabled !== 'I Have Read and Opt In to SmartSense Telemetry') {
-            send(event, context, "FAILED", "You must opt-in to SmartSense telemetry when entering your existing SmartSenseID!");
-            return;
-        }
         if (event.ResourceProperties.VPC == null || event.ResourceProperties.SUBNET == null){
             send(event, context, "SUCCESS");
             return;
