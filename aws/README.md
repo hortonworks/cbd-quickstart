@@ -1,8 +1,8 @@
 This repo contains Cloudbreak related AWS Cloudformation templates.
 
-## Cloudbreak template for version: 2.6.1-rc.20
+## Cloudbreak template for version: 2.6.1-rc.21
 
-<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.6.1-rc.20.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
+<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.6.1-rc.21.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
 
 
 ## Creating and uploading versioned templates
@@ -92,3 +92,77 @@ Our scripts are built on the top of the first generation of the Amazon linuxes, 
 make generate-latest-ami-mappings
 ```
 
+# Generated roles
+The template contains a role that is assigned to the created instances as root instance profile and only authorized to perform describing the resources on the created Cloudformation stack.
+```
+"CloudbreakRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+      "AssumeRolePolicyDocument": {
+         "Version" : "2012-10-17",
+         "Statement": [ {
+            "Effect": "Allow",
+            "Principal": {
+               "Service": [ "ec2.amazonaws.com" ]
+            },
+            "Action": [ "sts:AssumeRole" ]
+         } ]
+      },
+      "Path": "/",
+      "Policies": [ {
+         "PolicyName": "root",
+         "PolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement": [
+           {
+               "Effect": "Allow",
+               "Action": [ "cloudformation:DescribeStackResource" ],
+               "Resource": "arn:aws:cloudformation:eu-central-1:000000000000:stack/example-tmpl-test"
+            }
+            ]
+         }
+         } ]
+      }
+},
+"RootInstanceProfile": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+      "Path": "/",
+      "Roles": [ {
+         "Ref": "CloudbreakRole"
+      } ]
+   }
+},
+```
+
+Also a role generated for allowing Lambda execution that validates the parameters and waits for the startup script to finish.
+```
+"LambdaExecutionRole": {
+  "Type": "AWS::IAM::Role",
+  "Properties": {
+    "AssumeRolePolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Effect": "Allow",
+        "Principal": {
+          "Service": ["lambda.amazonaws.com"]
+        },
+        "Action": ["sts:AssumeRole"]
+      }]
+    },
+    "Path": "/",
+    "Policies": [{
+      "PolicyName": "root",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+            "Resource": "arn:aws:logs:*:*:*"
+          }
+        ]
+      }
+    }]
+  }
+},
+```
