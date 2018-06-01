@@ -1,8 +1,8 @@
 This repo contains Cloudbreak related AWS Cloudformation templates.
 
-## Cloudbreak template for version: 2.6.1-rc.21
+## Cloudbreak template for version: 2.6.1-rc.22
 
-<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.6.1-rc.21.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
+<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.6.1-rc.22.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
 
 
 ## Creating and uploading versioned templates
@@ -158,7 +158,7 @@ Also a role generated for allowing Lambda execution that validates the parameter
         "Statement": [{
             "Effect": "Allow",
             "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
-            "Resource": "arn:aws:logs:*:*:*"
+            "Resource": "arn:aws:logs:eu-central-1:000000000000:*"
           }
         ]
       }
