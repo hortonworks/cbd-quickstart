@@ -37,7 +37,27 @@
       "Type" : "String",
       "Default" : "m4.large",
       "AllowedValues" : [ "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge" ]
+    },
+    "VPCUsageOption" : {
+      "Description" : "Select to create a new VPC or use an existing VPC (if existing, select VPC & Subnet below)",
+      "Default" : "Create New VPC",
+      "Type" : "String",
+      "AllowedValues" : ["Create New VPC", "Use Existing VPC"]
+    },
+    "VPCID": {
+      "Description": "ID of an existing VPC which the instance will be deployed into",
+      "Type": "AWS::EC2::VPC::Id",
+      "MinLength" : "1"
+    },
+    "SubnetID": {
+      "Description": "ID of an existing Subnet within the VPC which the instance will be deployed into",
+      "Type": "AWS::EC2::Subnet::Id",
+      "MinLength" : "1"
     }
+  },
+
+  "Conditions" : {
+    "CreateNewVPC" : {"Fn::Equals" : [{"Ref" : "VPCUsageOption"}, "Create New VPC"] }
   },
 
   "Metadata" : {
@@ -50,6 +70,10 @@
           {
             "Label" : { "default" : "Security Configuration" },
             "Parameters" : [ "KeyName", "RemoteLocation" ]
+          },
+          {
+            "Label" : { "default" : "Network Configuration" },
+            "Parameters" : [ "VPCUsageOption", "VPCID", "SubnetID" ]
           }
         ],
         "ParameterLabels" : {
@@ -57,7 +81,10 @@
           "EmailAddress" : { "default" : "Email Address" },
           "AdminPassword" : { "default" : "Admin Password" },
           "KeyName" : { "default" : "SSH Key Name"},
-          "RemoteLocation" : { "default" : "Remote Access" }
+          "RemoteLocation" : { "default" : "Remote Access" },
+          "VPCUsageOption" : { "default" : "VPC option"},
+          "VPCID" : { "default" : "Existing VPC ID"},
+          "SubnetID" : { "default" : "Existing Subnet ID"}
         }
       }
   },
@@ -69,6 +96,7 @@
    "Resources" : {
     "VPC" : {
       "Type" : "AWS::EC2::VPC",
+      "Condition" : "CreateNewVPC",
       "Properties" : {
         "CidrBlock" : "10.0.0.0/16",
         "EnableDnsSupport" : "true",
@@ -81,6 +109,7 @@
 
     "PublicSubnet" : {
       "Type" : "AWS::EC2::Subnet",
+      "Condition" : "CreateNewVPC",
       "Properties" : {
         "MapPublicIpOnLaunch" : true,
         "VpcId" : { "Ref" : "VPC" },
@@ -93,6 +122,7 @@
 
     "InternetGateway" : {
       "Type" : "AWS::EC2::InternetGateway",
+      "Condition" : "CreateNewVPC",
       "Properties" : {
         "Tags" : [
           { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } }
@@ -102,6 +132,7 @@
 
     "AttachGateway" : {
        "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Condition" : "CreateNewVPC",
        "Properties" : {
          "VpcId" : { "Ref" : "VPC" },
          "InternetGatewayId" : { "Ref" : "InternetGateway" }
@@ -110,6 +141,7 @@
 
     "PublicRouteTable" : {
       "Type" : "AWS::EC2::RouteTable",
+      "Condition" : "CreateNewVPC",
       "Properties" : {
         "VpcId" : { "Ref" : "VPC" },
         "Tags" : [
@@ -120,6 +152,7 @@
 
     "PublicRoute" : {
       "Type" : "AWS::EC2::Route",
+      "Condition" : "CreateNewVPC",
       "DependsOn" : [ "PublicRouteTable", "AttachGateway" ],
       "Properties" : {
         "RouteTableId" : { "Ref" : "PublicRouteTable" },
@@ -130,6 +163,7 @@
 
     "PublicSubnetRouteTableAssociation" : {
       "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Condition" : "CreateNewVPC",
       "Properties" : {
         "SubnetId" : { "Ref" : "PublicSubnet" },
         "RouteTableId" : { "Ref" : "PublicRouteTable" }
@@ -177,7 +211,6 @@
 
     "Cloudbreak": {
       "Type": "AWS::EC2::Instance",
-      "DependsOn" : [ "PublicSubnetRouteTableAssociation", "PublicRoute" ],
       "Metadata" : {
         "cloudbreak" : {
           "user" : { "Ref" : "EmailAddress" },
@@ -191,9 +224,7 @@
           "export KEYPAIR_NAME=", { "Ref" : "KeyName" }, "\n",
           "export WAIT_HANDLE_URL='", { "Ref" : "InstanceWaitHandle" }, "'\n",
           "export UPLOAD_LOGS=NO\n",
-          "export VPC_ID='", { "Ref" : "VPC" } ,"'\n",
           "export AWS_ACCOUNT_ID='", { "Ref" : "AWS::AccountId" } ,"'", "\n",
-          "export IGW_ID='", { "Ref" : "InternetGateway" } ,"'\n",
           "export CBD_VERSION={{ $CBD_VERSION }}\n",
           "export BUILD_CLUSTER=false\n",
           "\n",
@@ -222,7 +253,13 @@
       "Properties": {
         "IamInstanceProfile": { "Ref" : "RootInstanceProfile" },
         "ImageId" : { "Fn::FindInMap" : [ "AWSRegionAMI", { "Ref" : "AWS::Region" }, "ami" ] },
-        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "SubnetId" : {
+          "Fn::If" : [
+            "CreateNewVPC",
+            {"Ref" : "PublicSubnet"},
+            {"Ref" : "SubnetID"}
+          ]
+        },
         "SecurityGroupIds" : [ { "Ref" : "CloudbreakSecurityGroup" } ],
         "InstanceType"   : { "Ref" : "InstanceType" },
         "KeyName"        : { "Ref" : "KeyName" },
@@ -234,6 +271,7 @@
     },
 
     "InstanceWaitHandle" : {
+      "DependsOn": "PrecheckDeployment",
       "Type" : "AWS::CloudFormation::WaitConditionHandle"
     },
 
@@ -251,7 +289,9 @@
       "Properties": {
         "ServiceToken": {
           "Fn::GetAtt": ["ValidateParameters", "Arn"]
-        }
+        },
+        "SUBNET": { "Fn::If" : [ "CreateNewVPC", "", { "Ref": "SubnetID" } ]},
+        "VPC": { "Fn::If" : [ "CreateNewVPC", "", { "Ref": "VPCID" } ]}
       }
     },
 
@@ -292,6 +332,15 @@
                 "Effect": "Allow",
                 "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
                 "Resource": { "Fn::Join" : ["", [ "arn:aws:logs:", { "Ref" : "AWS::Region" }, ":", { "Ref" : "AWS::AccountId" } , ":*", ""]] }
+              }, 
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeVpcAttribute"
+                ],
+                "Resource": "*"
               }
             ]
           }
@@ -301,7 +350,13 @@
     "CloudbreakSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "VpcId" : { "Ref" : "VPC" },
+        "VpcId" : {
+          "Fn::If" : [
+            "CreateNewVPC",
+            { "Ref" : "VPC" },
+            { "Ref" : "VPCID" }
+          ]
+        },
         "GroupDescription" : "Enable HTTP access to Cloud UI and SSH access from a remote location",
         "SecurityGroupIngress" : [
           {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : { "Ref" : "RemoteLocation" } },

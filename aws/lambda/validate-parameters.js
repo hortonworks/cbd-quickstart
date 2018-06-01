@@ -75,7 +75,7 @@ describeVPCAttribute = function(ec2, vpcId) {
 exports.handler = function(event, context, callback) {
     console.log('REQUEST RECEIVED:\\n', JSON.stringify(event));
     if (event.RequestType == 'Create') {
-        if (event.ResourceProperties.VPC == null || event.ResourceProperties.SUBNET == null){
+        if (event.ResourceProperties.VPC == null || event.ResourceProperties.VPC == "" || event.ResourceProperties.SUBNET == null || event.ResourceProperties.SUBNET == ""){
             send(event, context, "SUCCESS");
             return;
         }
