@@ -13,11 +13,9 @@ clean:
 	mkdir -p build
 
 build:
-	$(eval VALIDATOR=$(shell uglifyjs --compress --mangle -- lambda/validate-parameters.js | sed 's/"/\\\\\\"/g' | sed 's/\\n/\\\\n/g'))
-
 	mkdir -p build
 	@echo "Updating AWS template to CBD version: $(VERSION)"
-	@sigil -f cbd-advanced.tmpl  CBD_VERSION="$(VERSION)" VALIDATOR="$(VALIDATOR)" > build/$(SIMPLE_TEMPLATE_BASE_NAME)-$(VERSION).template
+	@sigil -f cbd-advanced.tmpl  CBD_VERSION="$(VERSION)" > build/$(SIMPLE_TEMPLATE_BASE_NAME)-$(VERSION).template
 	
 	@find build -name \*.template | xargs -n 1 -I@ bash -c 'echo "[json-syntax-check]  @" ; jq . @ >/dev/null'
 

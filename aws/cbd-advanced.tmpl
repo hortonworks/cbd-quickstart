@@ -136,7 +136,7 @@
       }
     },
 
-    "CloudbreakRole": {
+    "CloudbreakQuickstartRole": {
          "Type": "AWS::IAM::Role",
          "Properties": {
             "AssumeRolePolicyDocument": {
@@ -170,7 +170,7 @@
          "Properties": {
             "Path": "/",
             "Roles": [ {
-               "Ref": "CloudbreakRole"
+               "Ref": "CloudbreakQuickstartRole"
             } ]
          }
       },
@@ -246,58 +246,6 @@
        }
     },
 
-    "PrecheckDeployment": {
-      "Type": "Custom::PrecheckDeployment",
-      "Properties": {
-        "ServiceToken": {
-          "Fn::GetAtt": ["ValidateParameters", "Arn"]
-        }
-      }
-    },
-
-    "ValidateParameters": {
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "Handler": "index.handler",
-        "Role": {
-          "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
-        },
-        "Code": {
-          "ZipFile": "{{$VALIDATOR}}"
-        },
-        "Runtime": "nodejs4.3",
-        "Timeout": "60"
-      }
-    },
-
-    "LambdaExecutionRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": {
-              "Service": ["lambda.amazonaws.com"]
-            },
-            "Action": ["sts:AssumeRole"]
-          }]
-        },
-        "Path": "/",
-        "Policies": [{
-          "PolicyName": "root",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
-                "Resource": { "Fn::Join" : ["", [ "arn:aws:logs:", { "Ref" : "AWS::Region" }, ":", { "Ref" : "AWS::AccountId" } , ":*", ""]] }
-              }
-            ]
-          }
-        }]
-      }
-    },
     "CloudbreakSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
