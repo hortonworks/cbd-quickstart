@@ -5,8 +5,8 @@ resources:
 - name: deployment-vm
   type: vm-template.jinja
   properties:
-    cbd_version: 2.7.2-rc.31
-    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.7.2-rc.31/install-and-start-cbd.sh
+    cbd_version: 2.7.2-rc.32
+    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.7.2-rc.32/install-and-start-cbd.sh
     region: us-central1
     zone: us-central1-a
     instance_type: n1-standard-4
