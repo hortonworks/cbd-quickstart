@@ -5,12 +5,12 @@ resources:
 - name: deployment-vm
   type: vm-template.jinja
   properties:
-    cbd_version: 2.8.0-rc.72
-    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.8.0-rc.72/install-and-start-cbd.sh
+    cbd_version: 2.8.0-rc.76
+    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.8.0-rc.76/install-and-start-cbd.sh
     region: us-central1
     zone: us-central1-a
     instance_type: n1-standard-4
-    source_image: centos-7-v20180523
+    source_image: centos-7-v20180815
     ssh_pub_key: ...
     os_user: cloudbreak
     user_email: admin@example.com
