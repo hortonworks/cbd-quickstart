@@ -90,6 +90,13 @@ init() {
     sed -i 's/--selinux-enabled//g' /etc/sysconfig/docker
     sed -i 's/--log-driver=journald//g' /etc/sysconfig/docker
     chkconfig docker on
+
+    ### Enable IPv4 packet forwardin in kernel -> for docker networking
+    if `grep -sqR -i "net.ipv4.ip_forward=0" -i "net.ipv4.ip_forward = 0" /etc/sysctl*`; then
+        debug "Enable IPv4 packet forwarding through sysctl."
+        sysctl -w net.ipv4.ip_forward=1
+        echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+    fi
 }
 
 custom_data() {
