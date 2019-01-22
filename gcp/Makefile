@@ -1,4 +1,4 @@
-export CENTOS_CLOUD_IMAGE_NAME=centos-7-v20181011
+export CENTOS_CLOUD_IMAGE_NAME=centos-7-v20190116
 
 build: check-env
 	@echo "Updated CBD version in GCP templates to $(VERSION)"
