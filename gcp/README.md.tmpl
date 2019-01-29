@@ -15,11 +15,11 @@ The virtual machines always started from the latest Centos 7 image that is avail
     region: us-central1
     zone: us-central1-a
     instance_type: n1-standard-4
-    ssh_pub_key: ....
+    ssh_pub_key: "{{$SSH_KEY}}"
     os_user: cloudbreak
     user_email: admin@example.com
     user_password: cloudbreak
-    service_account_email: ...
+    service_account_email: {{$GCP_ACCOUNT_EMAIL}}
 ```
 
 #### Run the following command to create a new deployment
@@ -40,7 +40,7 @@ With the `gcloud` command-line tool, you can pass in the template file directly 
 ```
 gcloud deployment-manager deployments create cbd-deployment \
     --template=vm-template.jinja \
-    --properties region:us-central1,zone:us-central1-a,instance_type:n1-standard-4,os_user:cloudbreak,user_email:admin@example.com,user_password:'cloudbreak',cbd_version:{{$VERSION}},startup-script:'https://raw.githubusercontent.com/hortonworks/cbd-quickstart/{{$VERSION}}/install-and-start-cbd.sh',source_image:{{$CENTOS_CLOUD_IMAGE_NAME}},ssh_pub_key:'....',service_account_email:'..'
+    --properties region:us-central1,zone:us-central1-a,instance_type:n1-standard-4,os_user:cloudbreak,user_email:admin@example.com,user_password:'cloudbreak',cbd_version:{{$VERSION}},startup-script:'https://raw.githubusercontent.com/hortonworks/cbd-quickstart/{{$VERSION}}/install-and-start-cbd.sh',source_image:{{$CENTOS_CLOUD_IMAGE_NAME}},ssh_pub_key:'...',service_account_email:'...'
 ```
 
 # Image versions of the templates
