@@ -12,7 +12,7 @@ generate-aws: deps check-env
 
 generate-gcp: deps check-env
 	@echo "Updating GCP templates to CBD version: $(VERSION)"
-	make -C gcp build
+	make -C gcp build-validated
 
 push-updated-templates: check-env
 	@echo "Updated CBD version in templates to $(VERSION)"
@@ -23,9 +23,6 @@ push-updated-templates: check-env
 deps:
 ifeq (, $(shell command -v sigil 2> /dev/null))
     $(shell curl -sL https://github.com/lalyos/sigil/releases/download/v0.4.1/sigil_0.4.1_$(shell uname)_x86_64.tgz | tar -xz -C /usr/local/bin)
-endif
-ifeq (, $(shell command -v uglifyjs 2> /dev/null))
-    $(shell npm install uglify-js -g)
 endif
 
 check-env:
