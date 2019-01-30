@@ -11,11 +11,11 @@ resources:
     zone: us-central1-a
     instance_type: n1-standard-4
     source_image: {{ $CENTOS_CLOUD_IMAGE_NAME }}
-    ssh_pub_key: ...
+    ssh_pub_key: "{{ $SSH_KEY }}"
     os_user: cloudbreak
     user_email: admin@example.com
     user_password: cloudbreak
-    service_account_email: ...
+    service_account_email: {{ $GCP_ACCOUNT_EMAIL }}
 
 outputs:
 - name: deploymentIp
