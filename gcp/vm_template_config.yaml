@@ -5,17 +5,17 @@ resources:
 - name: deployment-vm
   type: vm-template.jinja
   properties:
-    cbd_version: 2.10.0-dev.536
-    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.10.0-dev.536/install-and-start-cbd.sh
+    cbd_version: 2.10.0-dev.538
+    startup-script: https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.10.0-dev.538/install-and-start-cbd.sh
     region: us-central1
     zone: us-central1-a
     instance_type: n1-standard-4
     source_image: centos-7-v20190213
-    ssh_pub_key: "..."
+    ssh_pub_key: "You need to set the SSH_KEY environment variable"
     os_user: cloudbreak
     user_email: admin@example.com
     user_password: cloudbreak
-    service_account_email: ...
+    service_account_email: You need to set the GCP_ACCOUNT_EMAIL environment variable
 
 outputs:
 - name: deploymentIp
