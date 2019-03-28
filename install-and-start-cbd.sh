@@ -197,7 +197,8 @@ install_cbd() {
     echo "export CB_HOST_ADDRESS=http://localhost:8080" >> Profile
     echo "export ULU_SUBSCRIBE_TO_NOTIFICATIONS=false" >> Profile
     echo "export CB_DEFAULT_SUBSCRIPTION_ADDRESS=http://uluwatu.service.consul:3000/notifications" >> Profile
-
+    echo "export VAULT_AUTO_UNSEAL=true" >> Profile
+    
     debug "Starting Cloudbreak.."
     debug $(date +"%T")
     cbd generate
