@@ -8,7 +8,7 @@ The virtual machines always started from the latest Centos 7 image that is avail
  * The `Compute Engine API` and the `Cloud Runtime Configuration API` services need to be enabled under the navigation menu `APIs & Services` subitem. Click on "ENABLE APIS AND SERVICES" then type the service names in the filter and enable it.
  * A service account is needed that has read and write permissions to `Compute Image`, `Compute Instance`, `Compute Network`, `Compute Security` and `Cloud RuntimeConfig`. This service account email needs to specified in the config.yaml or in the gcloud command explicitly as a property.
 
-## Deploy 2.15.0-dev.12 via gcloud command line interface by using template config
+## Deploy 2.15.0-dev.14 via gcloud command line interface by using template config
 
 #### Please review and customize the following fields of vm_template_config.yaml file first
 ```yaml
@@ -34,13 +34,13 @@ gcloud deployment-manager deployments create cbd-deployment --config=vm_template
 gcloud deployment-manager deployments delete cbd-deployment -q
 ```
 
-## Deploy 2.15.0-dev.12 via gcloud command line interface by using template config
+## Deploy 2.15.0-dev.14 via gcloud command line interface by using template config
 With the `gcloud` command-line tool, you can pass in the template file directly and provide the values for your template properties explicitly on the command-line. But in this case you should specify all of the properties that is required by our [template schema.](vm-template.jinja.schema) We have generated a default one, but please review and customize the previously mentioned key-value pairs, especially the `ssh_pub_key` one:
 
 ```
 gcloud deployment-manager deployments create cbd-deployment \
     --template=vm-template.jinja \
-    --properties region:us-central1,zone:us-central1-a,instance_type:n1-standard-4,os_user:cloudbreak,user_email:admin@example.com,user_password:'cloudbreak',cbd_version:2.15.0-dev.12,startup-script:'https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.15.0-dev.12/install-and-start-cbd.sh',source_image:centos-7-v20190619,ssh_pub_key:'...',service_account_email:'...'
+    --properties region:us-central1,zone:us-central1-a,instance_type:n1-standard-4,os_user:cloudbreak,user_email:admin@example.com,user_password:'cloudbreak',cbd_version:2.15.0-dev.14,startup-script:'https://raw.githubusercontent.com/hortonworks/cbd-quickstart/2.15.0-dev.14/install-and-start-cbd.sh',source_image:centos-7-v20190619,ssh_pub_key:'...',service_account_email:'...'
 ```
 
 # Image versions of the templates
