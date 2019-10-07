@@ -1,8 +1,8 @@
 This repo contains Cloudbreak related AWS Cloudformation templates.
 
-## Cloudbreak template for version: 2.15.0-dev.43
+## Cloudbreak template for version: 2.15.0-dev.44
 
-<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.15.0-dev.43.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
+<a href="https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?templateURL=https://s3.amazonaws.com/cbd-quickstart/cbd-quickstart-2.15.0-dev.44.template"> ![deploy cloudbreak](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png) </a>
 
 
 ## Creating and uploading versioned templates
