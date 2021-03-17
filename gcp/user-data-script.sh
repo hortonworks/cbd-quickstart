@@ -85,7 +85,7 @@ start_cloudbreak() {
 
   echo "export CB_INSTANCE_UUID=$(uuidgen)" >> Profile
   echo "export UAA_DEFAULT_USER_PW=$(uuidgen)" >> Profile
-  curl -Ls s3.amazonaws.com/public-repo-1.hortonworks.com/HDP/cloudbreak/cloudbreak-deployer_${CBD_VERSION}_$(uname)_x86_64.tgz | tar -xz -C /bin cbd
+  curl -Ls public-repo-1.hortonworks.com/HDP/cloudbreak/cloudbreak-deployer_${CBD_VERSION}_$(uname)_x86_64.tgz | tar -xz -C /bin cbd
   cbd generate
   cbd util cleanup || true
   cbd pull-parallel
